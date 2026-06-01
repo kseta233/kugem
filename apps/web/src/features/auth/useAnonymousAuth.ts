@@ -18,6 +18,18 @@ type UseAnonymousAuthResult = {
 
 const DEFAULT_DISPLAY_NAME = 'Guest'
 
+const createFallbackProfile = (user: User): Profile => ({
+  id: user.id,
+  username: null,
+  display_name: DEFAULT_DISPLAY_NAME,
+  avatar_url: null,
+  app_status: user.is_anonymous ? 'anonymous' : 'registered',
+  total_coin: 0,
+  total_play_count: 0,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+})
+
 export const useAnonymousAuth = (): UseAnonymousAuthResult => {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -35,14 +47,18 @@ export const useAnonymousAuth = (): UseAnonymousAuthResult => {
       setUser(authedUser)
       setSessionSource(session.source)
 
-      await upsertProfile({
-        id: authedUser.id,
-        display_name: DEFAULT_DISPLAY_NAME,
-        app_status: authedUser.is_anonymous ? 'anonymous' : 'registered',
-      })
+      try {
+        await upsertProfile({
+          id: authedUser.id,
+          display_name: DEFAULT_DISPLAY_NAME,
+          app_status: authedUser.is_anonymous ? 'anonymous' : 'registered',
+        })
 
-      const nextProfile = await getProfile(authedUser.id)
-      setProfile(nextProfile)
+        const nextProfile = await getProfile(authedUser.id)
+        setProfile(nextProfile ?? createFallbackProfile(authedUser))
+      } catch {
+        setProfile(createFallbackProfile(authedUser))
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unexpected auth error'
       setError(message)

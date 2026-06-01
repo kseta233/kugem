@@ -15,6 +15,9 @@ export const getCurrentUser = async (): Promise<User | null> => {
   } = await supabase.auth.getUser()
 
   if (error) {
+    if (error.message.toLowerCase().includes('auth session missing')) {
+      return null
+    }
     throw error
   }
 
