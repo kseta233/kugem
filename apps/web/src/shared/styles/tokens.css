@@ -1,0 +1,53 @@
+:root {
+  --color-bg: #f8f9fa;
+  --color-bg-accent: #f8f9fa;
+  --color-surface: #ffffff;
+  --color-surface-low: #f3f4f5;
+  --color-surface-variant: #e1e3e4;
+  --color-text: #191c1d;
+  --color-text-muted: #4a4455;
+  --color-border: #ccc3d8;
+  --color-brand: #630ed4;
+  --color-brand-strong: #4a00b0;
+  --color-brand-soft: #eaddff;
+  --color-brand-container: #7c3aed;
+  --color-brand-on: #ffffff;
+  --color-coin-bg: #fed01b;
+  --color-coin-text: #6f5900;
+  --color-success-bg: #f2fbfa;
+  --color-success-border: #95c4c0;
+  --color-warning-bg: #fff8eb;
+  --color-warning-border: #ddc79f;
+  --color-danger-bg: #ffdad6;
+  --color-danger-border: #ba1a1a;
+  --color-shadow: rgba(0, 0, 0, 0.06);
+
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+
+  --touch-min: 44px;
+  --action-min: 56px;
+
+  --font-display-lg: 700 32px/40px 'Quicksand', 'Avenir Next', sans-serif;
+  --font-headline-lg: 700 24px/32px 'Quicksand', 'Avenir Next', sans-serif;
+  --font-headline-md: 600 20px/28px 'Quicksand', 'Avenir Next', sans-serif;
+  --font-body-lg: 500 18px/26px 'Quicksand', 'Avenir Next', sans-serif;
+  --font-body-md: 500 16px/24px 'Quicksand', 'Avenir Next', sans-serif;
+  --font-label-lg: 700 14px/20px 'Quicksand', 'Avenir Next', sans-serif;
+  --font-label-sm: 600 12px/16px 'Quicksand', 'Avenir Next', sans-serif;
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+}

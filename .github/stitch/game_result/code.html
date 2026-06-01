@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MiniPlay - Game Result</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-bright": "#f8f9fa",
+                        "secondary-fixed-dim": "#eec200",
+                        "primary-fixed-dim": "#d2bbff",
+                        "on-primary-fixed-variant": "#5a00c6",
+                        "primary-container": "#7c3aed",
+                        "on-error-container": "#93000a",
+                        "on-primary-container": "#ede0ff",
+                        "tertiary-fixed-dim": "#ffb0cd",
+                        "on-secondary-fixed-variant": "#574500",
+                        "on-secondary-fixed": "#231b00",
+                        "secondary": "#735c00",
+                        "error": "#ba1a1a",
+                        "on-surface-variant": "#4a4455",
+                        "surface-container": "#edeeef",
+                        "on-background": "#191c1d",
+                        "secondary-fixed": "#ffe083",
+                        "error-container": "#ffdad6",
+                        "surface": "#f8f9fa",
+                        "outline": "#7b7487",
+                        "on-secondary-container": "#6f5900",
+                        "surface-variant": "#e1e3e4",
+                        "surface-container-low": "#f3f4f5",
+                        "primary": "#630ed4",
+                        "inverse-primary": "#d2bbff",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-dim": "#d9dadb",
+                        "on-tertiary-container": "#ffdde7",
+                        "inverse-surface": "#2e3132",
+                        "secondary-container": "#fed01b",
+                        "tertiary-container": "#bf2076",
+                        "on-secondary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "surface-tint": "#732ee4",
+                        "on-surface": "#191c1d",
+                        "on-primary": "#ffffff",
+                        "surface-container-high": "#e7e8e9",
+                        "tertiary-fixed": "#ffd9e4",
+                        "on-tertiary": "#ffffff",
+                        "background": "#f8f9fa",
+                        "surface-container-highest": "#e1e3e4",
+                        "on-tertiary-fixed-variant": "#8c0053",
+                        "on-primary-fixed": "#25005a",
+                        "on-tertiary-fixed": "#3e0022",
+                        "outline-variant": "#ccc3d8",
+                        "tertiary": "#9b005c",
+                        "primary-fixed": "#eaddff",
+                        "inverse-on-surface": "#f0f1f2"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "12px",
+                        "base": "4px",
+                        "container-padding": "20px",
+                        "xl": "32px",
+                        "sm": "8px",
+                        "md": "16px",
+                        "xs": "4px",
+                        "lg": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Quicksand"],
+                        "label-lg": ["Quicksand"],
+                        "body-lg": ["Quicksand"],
+                        "headline-md": ["Quicksand"],
+                        "display-lg": ["Quicksand"],
+                        "label-sm": ["Quicksand"],
+                        "body-md": ["Quicksand"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.04em", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "26px", "fontWeight": "500" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "display-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            animation: fall linear infinite;
+        }
+        @keyframes fall {
+            to { transform: translateY(100vh) rotate(720deg); }
+        }
+        .bouncy-btn:active {
+            transform: scale(0.95);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface font-body-md text-on-surface overflow-hidden h-screen flex flex-col justify-center items-center relative">
+<!-- Confetti Container -->
+<div class="absolute inset-0 pointer-events-none z-0 overflow-hidden" id="confetti-container"></div>
+<!-- Main Result Card -->
+<main class="w-full max-w-[600px] px-container-padding relative z-10 flex flex-col items-center">
+<div class="bg-surface-container-lowest w-full rounded-xl shadow-[0px_4px_20px_0px_rgba(0,0,0,0.06)] p-lg text-center flex flex-col items-center border border-surface-variant relative overflow-hidden">
+<!-- Sunburst effect behind score -->
+<div class="absolute inset-0 opacity-10 pointer-events-none flex justify-center items-center" style="background: radial-gradient(circle, var(--tw-colors-secondary-container) 0%, transparent 70%);"></div>
+<div class="mb-sm z-10">
+<span class="material-symbols-outlined text-display-lg text-tertiary" style="font-variation-settings: 'FILL' 1;">timer</span>
+</div>
+<h1 class="font-headline-md text-headline-md text-on-surface-variant mb-xs z-10">Reaction Time</h1>
+<div class="font-display-lg text-display-lg text-primary mb-md z-10">
+                185ms
+            </div>
+<div class="flex items-center gap-sm bg-surface-container-low px-md py-sm rounded-full mb-lg z-10">
+<span class="material-symbols-outlined text-secondary-fixed-dim" style="font-variation-settings: 'FILL' 1;">monetization_on</span>
+<span class="font-label-lg text-label-lg text-on-surface">+50 Coins</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-xl z-10 flex items-center gap-xs">
+<span class="material-symbols-outlined text-primary text-sm" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                Score saved
+            </p>
+<div class="w-full flex flex-col gap-md z-10">
+<button class="bouncy-btn w-full h-[56px] bg-primary text-on-primary font-label-lg text-label-lg rounded-full flex justify-center items-center shadow-[0_3px_0_0_#4a00b0] transition-transform duration-150">
+                    Play Again
+                </button>
+<button class="bouncy-btn w-full h-[56px] bg-primary-fixed text-on-primary-fixed-variant font-label-lg text-label-lg rounded-full flex justify-center items-center transition-transform duration-150">
+                    Back to Games
+                </button>
+</div>
+</div>
+</main>
+<script>
+        // Simple Confetti
+        const colors = ['#7c3aed', '#eec200', '#ffb0cd', '#630ed4'];
+        const container = document.getElementById('confetti-container');
+        for(let i=0; i<30; i++) {
+            let conf = document.createElement('div');
+            conf.className = 'confetti rounded-sm';
+            conf.style.left = Math.random() * 100 + 'vw';
+            conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            conf.style.animationDuration = (Math.random() * 2 + 2) + 's';
+            conf.style.animationDelay = (Math.random() * 2) + 's';
+            container.appendChild(conf);
+        }
+    </script>
+</body></html>

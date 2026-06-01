@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Reaction Time</title>
+<!-- Fonts & Icons -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400..700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-bright": "#f8f9fa",
+                    "secondary-fixed-dim": "#eec200",
+                    "primary-fixed-dim": "#d2bbff",
+                    "on-primary-fixed-variant": "#5a00c6",
+                    "primary-container": "#7c3aed",
+                    "on-error-container": "#93000a",
+                    "on-primary-container": "#ede0ff",
+                    "tertiary-fixed-dim": "#ffb0cd",
+                    "on-secondary-fixed-variant": "#574500",
+                    "on-secondary-fixed": "#231b00",
+                    "secondary": "#735c00",
+                    "error": "#ba1a1a",
+                    "on-surface-variant": "#4a4455",
+                    "surface-container": "#edeeef",
+                    "on-background": "#191c1d",
+                    "secondary-fixed": "#ffe083",
+                    "error-container": "#ffdad6",
+                    "surface": "#f8f9fa",
+                    "outline": "#7b7487",
+                    "on-secondary-container": "#6f5900",
+                    "surface-variant": "#e1e3e4",
+                    "surface-container-low": "#f3f4f5",
+                    "primary": "#630ed4",
+                    "inverse-primary": "#d2bbff",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-dim": "#d9dadb",
+                    "on-tertiary-container": "#ffdde7",
+                    "inverse-surface": "#2e3132",
+                    "secondary-container": "#fed01b",
+                    "tertiary-container": "#bf2076",
+                    "on-secondary": "#ffffff",
+                    "on-error": "#ffffff",
+                    "surface-tint": "#732ee4",
+                    "on-surface": "#191c1d",
+                    "on-primary": "#ffffff",
+                    "surface-container-high": "#e7e8e9",
+                    "tertiary-fixed": "#ffd9e4",
+                    "on-tertiary": "#ffffff",
+                    "background": "#f8f9fa",
+                    "surface-container-highest": "#e1e3e4",
+                    "on-tertiary-fixed-variant": "#8c0053",
+                    "on-primary-fixed": "#25005a",
+                    "on-tertiary-fixed": "#3e0022",
+                    "outline-variant": "#ccc3d8",
+                    "tertiary": "#9b005c",
+                    "primary-fixed": "#eaddff",
+                    "inverse-on-surface": "#f0f1f2"
+            },
+            "borderRadius": {
+                    "DEFAULT": "1rem",
+                    "lg": "2rem",
+                    "xl": "3rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "gutter": "12px",
+                    "base": "4px",
+                    "container-padding": "20px",
+                    "xl": "32px",
+                    "sm": "8px",
+                    "md": "16px",
+                    "xs": "4px",
+                    "lg": "24px"
+            },
+            "fontFamily": {
+                    "headline-lg": [
+                            "Quicksand"
+                    ],
+                    "label-lg": [
+                            "Quicksand"
+                    ],
+                    "body-lg": [
+                            "Quicksand"
+                    ],
+                    "headline-md": [
+                            "Quicksand"
+                    ],
+                    "display-lg": [
+                            "Quicksand"
+                    ],
+                    "label-sm": [
+                            "Quicksand"
+                    ],
+                    "body-md": [
+                            "Quicksand"
+                    ]
+            },
+            "fontSize": {
+                    "headline-lg": [
+                            "24px",
+                            {
+                                    "lineHeight": "32px",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "label-lg": [
+                            "14px",
+                            {
+                                    "lineHeight": "20px",
+                                    "letterSpacing": "0.04em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "body-lg": [
+                            "18px",
+                            {
+                                    "lineHeight": "26px",
+                                    "fontWeight": "500"
+                            }
+                    ],
+                    "headline-md": [
+                            "20px",
+                            {
+                                    "lineHeight": "28px",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "display-lg": [
+                            "32px",
+                            {
+                                    "lineHeight": "40px",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "label-sm": [
+                            "12px",
+                            {
+                                    "lineHeight": "16px",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "body-md": [
+                            "16px",
+                            {
+                                    "lineHeight": "24px",
+                                    "fontWeight": "500"
+                            }
+                    ]
+            }
+        },
+        },
+      }
+    </script>
+<style>
+        /* Hide scrollbar for clean app feel */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+        
+        /* Ambient Pattern Animation */
+        @keyframes floatBg {
+            0% { background-position: 0px 0px; }
+            100% { background-position: 40px 40px; }
+        }
+        .bg-pattern {
+            background-image: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.15) 2px, transparent 2px), 
+                              radial-gradient(circle at 80% 70%, rgba(255,255,255,0.15) 2px, transparent 2px);
+            background-size: 40px 40px;
+            animation: floatBg 20s linear infinite;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md antialiased selection:bg-primary-container selection:text-on-primary-container">
+<!-- App Container: Fluid Grid Max 600px -->
+<div class="max-w-[600px] mx-auto min-h-[884px] flex flex-col relative overflow-hidden">
+<!-- Top App Bar (Task-Focused Variant) -->
+<header class="flex justify-between items-center w-full px-container-padding h-16 shrink-0 z-10 relative">
+<!-- Leading Action: Close/Exit Game -->
+<button class="w-12 h-12 flex items-center justify-center rounded-full bg-surface shadow-[0px_4px_20px_0px_rgba(0,0,0,0.06)] active:scale-90 transition-transform duration-200 text-on-surface-variant hover:opacity-80">
+<span class="material-symbols-outlined text-[24px]">close</span>
+</button>
+<!-- Headline: Session Status -->
+<div class="font-headline-md text-headline-md text-on-background tracking-tight">
+                Round 1/3
+            </div>
+<!-- Trailing Action: Coin Badge -->
+<div class="flex items-center gap-xs bg-surface shadow-[0px_4px_20px_0px_rgba(0,0,0,0.06)] rounded-full pl-sm pr-md py-sm">
+<span class="material-symbols-outlined text-secondary-fixed-dim text-[20px]" style="font-variation-settings: 'FILL' 1;">monetization_on</span>
+<span class="font-label-lg text-label-lg text-on-surface">500</span>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow flex flex-col p-container-padding pb-xl z-0">
+<!-- Game Card Area -->
+<div class="flex-grow w-full rounded-xl bg-primary-container shadow-[0px_4px_20px_0px_rgba(0,0,0,0.06)] relative overflow-hidden flex flex-col items-center justify-center isolate border border-white/5">
+<!-- Playful Animated Background Layer -->
+<div class="absolute inset-0 bg-pattern -z-10 mix-blend-overlay"></div>
+<!-- Ambient Glow behind button -->
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/20 rounded-full blur-[60px] -z-10"></div>
+<!-- Center UI Cluster -->
+<div class="flex flex-col items-center justify-center gap-lg w-full px-lg mt-[-40px]">
+<!-- Call to Action Text -->
+<h1 class="font-display-lg text-display-lg text-on-primary-container text-center tracking-tight drop-shadow-md select-none">
+                        TAP TO START
+                    </h1>
+<!-- Large Tactile Interaction Button -->
+<!-- Note: Uses "bottom-border" shadow logic from style guide for a 3D squishy feel -->
+<button class="relative group w-48 h-48 rounded-full bg-tertiary-container shadow-[0px_10px_0px_0px_#9b005c,0px_20px_40px_0px_rgba(0,0,0,0.3)] active:translate-y-[10px] active:shadow-[0px_0px_0px_0px_#9b005c,0px_10px_20px_0px_rgba(0,0,0,0.2)] transition-all duration-100 ease-out flex items-center justify-center outline-none focus:ring-4 focus:ring-white/30">
+<!-- Hover Overlay -->
+<div class="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+<!-- Icon -->
+<span class="material-symbols-outlined text-[80px] text-on-tertiary-container transform group-active:scale-90 transition-transform duration-100 ease-out drop-shadow-sm" style="font-variation-settings: 'FILL' 1;">
+                            touch_app
+                        </span>
+</button>
+</div>
+<!-- Bottom Status / Timer Display (Docked inside Game Canvas) -->
+<div class="absolute bottom-md left-0 w-full flex justify-center px-gutter">
+<!-- Glassmorphism pill for timer -->
+<div class="flex items-center gap-sm bg-inverse-surface/30 backdrop-blur-md rounded-full px-lg py-sm shadow-inner border border-white/10">
+<span class="material-symbols-outlined text-on-primary-container text-[20px] opacity-80">timer</span>
+<span class="font-headline-lg text-headline-lg text-on-primary-container tracking-widest tabular-nums drop-shadow-sm">
+                            00.000s
+                        </span>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Micro-interaction Script -->
+<script>
+        // Add a subtle ripple effect to the main button for extra tactile feedback
+        const btn = document.querySelector('button.group.w-48');
+        
+        btn.addEventListener('mousedown', function(e) {
+            // Visual feedback handled largely by Tailwind active classes,
+            // but we can add logic here for actual game start mechanics later.
+            console.log('Interaction initialized.');
+        });
+    </script>
+</body></html>

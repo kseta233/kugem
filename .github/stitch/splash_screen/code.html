@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MiniPlay - Splash Screen</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-bright": "#f8f9fa",
+                      "secondary-fixed-dim": "#eec200",
+                      "primary-fixed-dim": "#d2bbff",
+                      "on-primary-fixed-variant": "#5a00c6",
+                      "primary-container": "#7c3aed",
+                      "on-error-container": "#93000a",
+                      "on-primary-container": "#ede0ff",
+                      "tertiary-fixed-dim": "#ffb0cd",
+                      "on-secondary-fixed-variant": "#574500",
+                      "on-secondary-fixed": "#231b00",
+                      "secondary": "#735c00",
+                      "error": "#ba1a1a",
+                      "on-surface-variant": "#4a4455",
+                      "surface-container": "#edeeef",
+                      "on-background": "#191c1d",
+                      "secondary-fixed": "#ffe083",
+                      "error-container": "#ffdad6",
+                      "surface": "#f8f9fa",
+                      "outline": "#7b7487",
+                      "on-secondary-container": "#6f5900",
+                      "surface-variant": "#e1e3e4",
+                      "surface-container-low": "#f3f4f5",
+                      "primary": "#630ed4",
+                      "inverse-primary": "#d2bbff",
+                      "surface-container-lowest": "#ffffff",
+                      "surface-dim": "#d9dadb",
+                      "on-tertiary-container": "#ffdde7",
+                      "inverse-surface": "#2e3132",
+                      "secondary-container": "#fed01b",
+                      "tertiary-container": "#bf2076",
+                      "on-secondary": "#ffffff",
+                      "on-error": "#ffffff",
+                      "surface-tint": "#732ee4",
+                      "on-surface": "#191c1d",
+                      "on-primary": "#ffffff",
+                      "surface-container-high": "#e7e8e9",
+                      "tertiary-fixed": "#ffd9e4",
+                      "on-tertiary": "#ffffff",
+                      "background": "#f8f9fa",
+                      "surface-container-highest": "#e1e3e4",
+                      "on-tertiary-fixed-variant": "#8c0053",
+                      "on-primary-fixed": "#25005a",
+                      "on-tertiary-fixed": "#3e0022",
+                      "outline-variant": "#ccc3d8",
+                      "tertiary": "#9b005c",
+                      "primary-fixed": "#eaddff",
+                      "inverse-on-surface": "#f0f1f2"
+              },
+              "borderRadius": {
+                      "DEFAULT": "1rem",
+                      "lg": "2rem",
+                      "xl": "3rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "gutter": "12px",
+                      "base": "4px",
+                      "container-padding": "20px",
+                      "xl": "32px",
+                      "sm": "8px",
+                      "md": "16px",
+                      "xs": "4px",
+                      "lg": "24px"
+              },
+              "fontFamily": {
+                      "headline-lg": [
+                              "Quicksand"
+                      ],
+                      "label-lg": [
+                              "Quicksand"
+                      ],
+                      "body-lg": [
+                              "Quicksand"
+                      ],
+                      "headline-md": [
+                              "Quicksand"
+                      ],
+                      "display-lg": [
+                              "Quicksand"
+                      ],
+                      "label-sm": [
+                              "Quicksand"
+                      ],
+                      "body-md": [
+                              "Quicksand"
+                      ]
+              },
+              "fontSize": {
+                      "headline-lg": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "label-lg": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "letterSpacing": "0.04em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "26px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "display-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "label-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "500"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        .material-symbols-outlined {
+          font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+      </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface-bright text-on-surface antialiased min-h-screen flex items-center justify-center overflow-hidden">
+<!-- Decorative Minimalist Background Elements -->
+<div class="fixed top-[-20%] left-[-10%] w-[60%] h-[60%] bg-primary-container/10 rounded-full blur-[80px] pointer-events-none"></div>
+<div class="fixed bottom-[-20%] right-[-10%] w-[70%] h-[70%] bg-tertiary-container/10 rounded-full blur-[80px] pointer-events-none"></div>
+<main class="relative z-10 flex flex-col items-center justify-center w-full max-w-[600px] px-container-padding">
+<!-- App Logo Placeholder -->
+<div class="mb-xl transform transition-transform duration-1000 ease-out translate-y-0" id="logo-container">
+<div class="w-32 h-32 rounded-3xl bg-surface-container-lowest shadow-[0px_4px_30px_0px_rgba(0,0,0,0.08)] flex items-center justify-center border-b-4 border-surface-variant relative overflow-hidden">
+<img alt="MiniPlay Logo" class="w-full h-full object-cover rounded-3xl absolute inset-0 opacity-20 pointer-events-none" data-alt="A glossy, 3D stylized game controller icon rendered in bright vibrant purple and gold colors, floating against a clean white background. The aesthetic is modern, playful, and high-energy, typical of a premium mobile casual gaming app. The lighting is soft and studio-quality, creating smooth highlights on the squishy, tactile-looking buttons of the controller." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCFvHcV9VpVMYzkhiLc13c-1mbpnm71Xs2ALCYxBYyHW4OpnXhgFwDLC_cTcb80Qhl5PqbwWfCpYiXpztScD-RFdY0fA_WwTF5WNTdFUAhCb000wHVeRiieeFvf0w5F3Ic4mU6O1sYeuFRWZLlcEOLFGRKM_9IZQnt31r97SR5A0hPLN5UwZp9zTLKVyYYNr3w4m_RgOP-16F1cyTgvbgtnkDjf-G6fHBcQOjRrxWVzsdY5F-7H5TbVreoGYVF3v_2W7DIKwBrnxDVa"/>
+<span class="material-symbols-outlined text-[64px] text-primary relative z-10">
+                    sports_esports
+                </span>
+</div>
+</div>
+<!-- Typography -->
+<div class="text-center mb-xl opacity-0 transition-opacity duration-700 ease-in" id="text-container">
+<h1 class="font-display-lg text-display-lg text-primary mb-sm tracking-tight">
+                MiniPlay
+            </h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant">
+                Play fast. Score high.
+            </p>
+</div>
+<!-- Custom Progress Bar (12px height, fully rounded as per guidance) -->
+<div class="w-64 h-[12px] bg-surface-variant rounded-full overflow-hidden mt-xl opacity-0 transition-opacity duration-500 delay-300" id="progress-container">
+<div class="h-full bg-gradient-to-r from-tertiary-container to-primary rounded-full w-0 transition-all duration-[2000ms] ease-out shadow-[inset_0_-2px_4px_rgba(0,0,0,0.1)]" id="progress-bar"></div>
+</div>
+</main>
+<script>
+        // Simple entrance animation and progress bar simulation
+        document.addEventListener("DOMContentLoaded", () => {
+            const logo = document.getElementById('logo-container');
+            const text = document.getElementById('text-container');
+            const progressContainer = document.getElementById('progress-container');
+            const progressBar = document.getElementById('progress-bar');
+
+            // Initial state classes for animation (if not handled by inline CSS)
+            logo.classList.add('scale-90', 'opacity-0');
+            
+            // Trigger entrance animations
+            setTimeout(() => {
+                logo.classList.remove('scale-90', 'opacity-0');
+                logo.classList.add('scale-100', 'opacity-100');
+            }, 100);
+
+            setTimeout(() => {
+                text.classList.remove('opacity-0');
+                progressContainer.classList.remove('opacity-0');
+            }, 400);
+
+            // Animate progress bar
+            setTimeout(() => {
+                progressBar.style.width = '100%';
+            }, 800);
+
+            // Optional: simulate redirect after load
+            setTimeout(() => {
+                // In a real app, this would route to the Home screen
+                progressBar.classList.add('opacity-0');
+            }, 3000);
+        });
+    </script>
+</body></html>
