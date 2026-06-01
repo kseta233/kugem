@@ -1,15 +1,15 @@
 [variables]
-NIXPACKS_NODE_VERSION = "22.13.1"
+NIXPACKS_NODE_VERSION = "23.11.1"
 NPM_CONFIG_PRODUCTION = "false"
 
 [phases.setup]
-nixPkgs = ["nodejs_22"]
+nixPkgs = ["nodejs_23"]
 
 [phases.install]
 cmds = ["cd apps/web && npm ci --include=dev"]
 
 [phases.build]
-cmds = ["cd apps/web && npm run build"]
+cmds = ["cd apps/web && if [ \"$(uname -s)\" = \"Linux\" ]; then npm install --no-save @rolldown/binding-linux-x64-gnu; fi && npm run build"]
 
 [start]
 cmd = "cd apps/web && npm run preview -- --host 0.0.0.0 --port $PORT"
