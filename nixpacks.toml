@@ -8,7 +8,7 @@ nixPkgs = ["nodejs_23"]
 cmds = ["cd apps/web && npm ci --include=dev"]
 
 [phases.build]
-cmds = ["cd apps/web && if [ \"$(uname -s)\" = \"Linux\" ]; then npm install --no-save @rolldown/binding-linux-x64-gnu lightningcss-linux-x64-gnu@1.32.0; fi && npm run build"]
+cmds = ["cd apps/web && npm ci && npm run build"]
 
 [start]
 cmd = "cd apps/web && npm run preview -- --host 0.0.0.0 --port $PORT"
