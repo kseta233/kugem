@@ -4,12 +4,16 @@ test.describe('MVP Phase 1-4 mobile flow', () => {
   test('anonymous auth to reaction result flow', async ({ page }) => {
     await page.goto('/')
 
-    await expect(page.getByTestId('anonymous-auth-ready')).toBeVisible()
+    // Welcome screen appears after splash + auth complete (up to 15 s for slow CI)
+    await expect(page.getByTestId('anonymous-auth-ready')).toBeVisible({ timeout: 15000 })
     await expect(page.getByTestId('session-persistence-indicator')).toBeVisible()
+    await expect(page.getByTestId('profile-coin-badge')).toBeVisible()
+
+    // Proceed to main game catalog
+    await page.getByTestId('continue-to-games').click()
 
     await expect(page.getByTestId('game-catalog')).toBeVisible()
     await expect(page.getByTestId('game-catalog-list')).toBeVisible()
-    await expect(page.getByTestId('profile-coin-badge')).toBeVisible()
 
     await page.getByTestId('open-reaction-detail').click()
     await expect(page.getByTestId('reaction-detail-screen')).toBeVisible()

@@ -1,23 +1,202 @@
 import type { FormEvent } from 'react'
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAnonymousAuth } from '@/features/auth/useAnonymousAuth'
-import { startGameSession } from '@/features/sessions/sessions.service'
-import { Button, Card, CoinBadge, Page } from '@/shared/components'
+import { getGames } from '@/features/games/games.service'
+import { getTopScoresByGame } from '@/features/leaderboard/leaderboard.service'
+import {
+  startGameSession,
+  submitScore,
+  type StartGameSessionResult,
+  type SubmitScoreResult,
+} from '@/features/sessions/sessions.service'
+import { createSharePost, type CreateSharePostResult } from '@/features/share/share.service'
+import { getPublicSharePostBySlug, type PublicSharePost } from '@/features/share/share.service'
+import { Button, Card, CoinBadge, HomeCategoryChips, HomeGameCard, Page } from '@/shared/components'
+import type { HomeCategory } from '@/shared/components'
+import { ProfileScreen } from '@/screens/ProfileScreen'
+import { ShareScreen } from '@/screens/ShareScreen'
+import { SplashScreen } from '@/screens/SplashScreen'
+import { WelcomeScreen } from '@/screens/WelcomeScreen'
+import type { Game } from '@/types/game'
+import type { LeaderboardItem } from '@/types/leaderboard'
 
-type Screen = 'catalog' | 'detail' | 'play' | 'result'
+type GameScreen = 'catalog' | 'detail' | 'play' | 'result'
+type AppPhase = 'splash' | 'splash-exiting' | 'welcome' | 'welcome-exiting' | 'main'
+type AppRoute = { name: 'home' } | { name: 'profile' } | { name: 'share'; slug: string }
+
+const HOME_PATH = '/'
+const PROFILE_PATH = '/profile'
+
+const resolveRouteFromPath = (pathname: string): AppRoute => {
+  if (pathname.toLowerCase() === PROFILE_PATH) {
+    return { name: 'profile' }
+  }
+
+  const shareMatch = pathname.match(/^\/share\/([^/]+)\/?$/i)
+  if (shareMatch?.[1]) {
+    return {
+      name: 'share',
+      slug: decodeURIComponent(shareMatch[1]),
+    }
+  }
+
+  return { name: 'home' }
+}
+
+const resolvePathFromRoute = (route: AppRoute): string => {
+  if (route.name === 'profile') {
+    return PROFILE_PATH
+  }
+  if (route.name === 'share') {
+    return `/share/${encodeURIComponent(route.slug)}`
+  }
+  return HOME_PATH
+}
+
+const isSameRoute = (left: AppRoute, right: AppRoute): boolean => {
+  if (left.name !== right.name) {
+    return false
+  }
+
+  if (left.name === 'share' && right.name === 'share') {
+    return left.slug === right.slug
+  }
+
+  return true
+}
+
+const classifyCategory = (game: Game): HomeCategory => {
+  const text = `${game.slug} ${game.title}`.toLowerCase()
+
+  if (text.includes('reaction') || text.includes('reflex')) {
+    return 'Reflex'
+  }
+
+  if (text.includes('memory') || text.includes('match') || text.includes('puzzle')) {
+    return 'Puzzle'
+  }
+
+  if (text.includes('speed') || text.includes('tap')) {
+    return 'Action'
+  }
+
+  return 'Coming Soon'
+}
+
+const toCardVariant = (category: HomeCategory): 'reaction' | 'memory' | 'speed' | 'locked' => {
+  if (category === 'Reflex') {
+    return 'reaction'
+  }
+  if (category === 'Puzzle') {
+    return 'memory'
+  }
+  if (category === 'Action') {
+    return 'speed'
+  }
+  return 'locked'
+}
 
 function App() {
   const { user, profile, sessionSource, loading, error, refresh, signOutAndRestart, updateDisplayName } =
     useAnonymousAuth()
+
+  const [route, setRoute] = useState<AppRoute>(() => {
+    if (typeof window === 'undefined') {
+      return { name: 'home' }
+    }
+    return resolveRouteFromPath(window.location.pathname)
+  })
+
+  // ── App phase management ──────────────────────────────────────────────────
+  const [appPhase, setAppPhase] = useState<AppPhase>('splash')
+  const splashDoneRef = useRef(false)
+  const authDoneRef = useRef(false)
+  const appPhaseRef = useRef<AppPhase>('splash')
+
+  useEffect(() => {
+    appPhaseRef.current = appPhase
+  }, [appPhase])
+
+  const tryAdvanceFromSplash = useCallback(() => {
+    if (splashDoneRef.current && authDoneRef.current && appPhaseRef.current === 'splash') {
+      setAppPhase('splash-exiting')
+      setTimeout(() => setAppPhase(route.name === 'share' ? 'main' : 'welcome'), 420)
+    }
+  }, [route.name])
+
+  // Minimum splash display: 2 s
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      splashDoneRef.current = true
+      tryAdvanceFromSplash()
+    }, 2000)
+    return () => clearTimeout(timer)
+  }, [tryAdvanceFromSplash])
+
+  // Advance once auth finishes loading
+  useEffect(() => {
+    if (!loading) {
+      authDoneRef.current = true
+      tryAdvanceFromSplash()
+    }
+  }, [loading, tryAdvanceFromSplash])
+
+  const onContinueToGames = useCallback(() => {
+    setAppPhase('welcome-exiting')
+    setTimeout(() => setAppPhase('main'), 360)
+  }, [])
+
+  // ── Game screen state ─────────────────────────────────────────────────────
   const [displayNameInput, setDisplayNameInput] = useState('')
   const [saving, setSaving] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
-  const [screen, setScreen] = useState<Screen>('catalog')
+  const [screen, setScreen] = useState<GameScreen>('catalog')
+  const [games, setGames] = useState<Game[]>([])
+  const [gamesLoading, setGamesLoading] = useState(false)
+  const [gamesError, setGamesError] = useState<string | null>(null)
+  const [selectedGame, setSelectedGame] = useState<Game | null>(null)
+  const [selectedGameCategory, setSelectedGameCategory] = useState<HomeCategory>('Reflex')
+  const [currentSession, setCurrentSession] = useState<StartGameSessionResult | null>(null)
+  const [playDurationMs, setPlayDurationMs] = useState<number | null>(null)
+  const [submittedScore, setSubmittedScore] = useState<number | null>(null)
+  const [submitResult, setSubmitResult] = useState<SubmitScoreResult | null>(null)
+  const [submittingScore, setSubmittingScore] = useState(false)
+  const [leaderboard, setLeaderboard] = useState<LeaderboardItem[]>([])
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false)
+  const [leaderboardError, setLeaderboardError] = useState<string | null>(null)
+  const [shareResult, setShareResult] = useState<CreateSharePostResult | null>(null)
+  const [shareError, setShareError] = useState<string | null>(null)
+  const [shareLoading, setShareLoading] = useState(false)
+  const [publicSharePost, setPublicSharePost] = useState<PublicSharePost | null>(null)
+  const [publicShareLoading, setPublicShareLoading] = useState(false)
+  const [publicShareError, setPublicShareError] = useState<string | null>(null)
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [startingSession, setStartingSession] = useState(false)
   const [sessionError, setSessionError] = useState<string | null>(null)
   const [reactionTimeMs, setReactionTimeMs] = useState<number | null>(null)
-  const activeProfile = profile
+  const [homeCategory, setHomeCategory] = useState<HomeCategory>('All')
+
+  useEffect(() => {
+    const onPopState = () => {
+      setRoute(resolveRouteFromPath(window.location.pathname))
+    }
+
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [])
+
+  const navigateToRoute = useCallback(
+    (nextRoute: AppRoute) => {
+      if (isSameRoute(nextRoute, route)) {
+        return
+      }
+
+      const nextPath = resolvePathFromRoute(nextRoute)
+      window.history.pushState({}, '', nextPath)
+      setRoute(nextRoute)
+    },
+    [route],
+  )
 
   const onSubmitDisplayName = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -31,8 +210,71 @@ function App() {
     }
   }
 
-  const hasProfile = Boolean(activeProfile)
+  const hasProfile = Boolean(profile)
   const isRestoredSession = sessionSource === 'restored'
+
+  const loadGames = useCallback(async () => {
+    try {
+      setGamesLoading(true)
+      setGamesError(null)
+      const data = await getGames()
+      setGames(data)
+
+      const reaction = data.find((game) => game.slug === 'reaction-time')
+      if (reaction) {
+        setSelectedGame(reaction)
+        setSelectedGameCategory(classifyCategory(reaction))
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to fetch games'
+      setGamesError(message)
+    } finally {
+      setGamesLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (appPhase === 'main' && hasProfile) {
+      void loadGames()
+    }
+  }, [appPhase, hasProfile, loadGames])
+
+  const loadLeaderboard = useCallback(async (gameId: string) => {
+    try {
+      setLeaderboardLoading(true)
+      setLeaderboardError(null)
+      const data = await getTopScoresByGame(gameId, 10)
+      setLeaderboard(data)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load leaderboard'
+      setLeaderboardError(message)
+    } finally {
+      setLeaderboardLoading(false)
+    }
+  }, [])
+
+  const loadPublicShare = useCallback(async (slug: string) => {
+    try {
+      setPublicShareLoading(true)
+      setPublicShareError(null)
+      const data = await getPublicSharePostBySlug(slug)
+      setPublicSharePost(data)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load shared result'
+      setPublicShareError(message)
+      setPublicSharePost(null)
+    } finally {
+      setPublicShareLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (appPhase !== 'main' || route.name !== 'share' || loading || !user) {
+      return
+    }
+
+    void loadPublicShare(route.slug)
+  }, [appPhase, route, loading, user, loadPublicShare])
 
   const onSignOut = async () => {
     try {
@@ -43,20 +285,37 @@ function App() {
     }
   }
 
-  const onOpenDetail = () => {
+  const onOpenDetail = (game: Game) => {
+    setSelectedGame(game)
+    setSelectedGameCategory(classifyCategory(game))
+    setShareResult(null)
+    setShareError(null)
+    setSubmitResult(null)
+    setSubmittedScore(null)
+    setLeaderboard([])
+    setLeaderboardError(null)
+    setPlayDurationMs(null)
+    setReactionTimeMs(null)
     setScreen('detail')
   }
 
   const onBackToCatalog = () => {
     setScreen('catalog')
     setSessionError(null)
+    setShareError(null)
   }
 
   const onStartSession = async () => {
+    if (!selectedGame) {
+      setSessionError('No game selected')
+      return
+    }
+
     try {
       setStartingSession(true)
       setSessionError(null)
-      const session = await startGameSession('reaction-time')
+      const session = await startGameSession(selectedGame.slug)
+      setCurrentSession(session)
       setSessionId(session.sessionId)
       setScreen('play')
     } catch (err) {
@@ -67,135 +326,245 @@ function App() {
     }
   }
 
-  const onFinishPlay = () => {
+  const onFinishPlay = async () => {
+    if (!sessionId || !currentSession || !selectedGame) {
+      setSessionError('Session not found. Start a new game session.')
+      return
+    }
+
     const ms = Math.floor(160 + Math.random() * 240)
+    const maxScore = Number(selectedGame.config.maxScore ?? 1000)
+    const computedScore = Math.max(0, Math.min(maxScore, Math.round(maxScore - ms * 2)))
+
+    try {
+      setSubmittingScore(true)
+      setSessionError(null)
+      setShareResult(null)
+      setShareError(null)
+
+      const result = await submitScore(sessionId, computedScore, ms)
+
+      setSubmittedScore(computedScore)
+      setSubmitResult(result)
+      setPlayDurationMs(ms)
+
+      if (currentSession.gameId) {
+        void loadLeaderboard(currentSession.gameId)
+      }
+
+      await refresh()
+      setScreen('result')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to submit score'
+      setSessionError(message)
+    } finally {
+      setSubmittingScore(false)
+    }
+
     setReactionTimeMs(ms)
-    setScreen('result')
   }
 
   const onPlayAgain = () => {
     setReactionTimeMs(null)
-    setScreen('play')
+    setPlayDurationMs(null)
+    setSubmitResult(null)
+    setSubmittedScore(null)
+    void onStartSession()
+  }
+
+  const onCreateShare = async () => {
+    if (!submitResult?.scoreId || !selectedGame) {
+      return
+    }
+
+    try {
+      setShareLoading(true)
+      setShareError(null)
+
+      const share = await createSharePost({
+        scoreId: submitResult.scoreId,
+        caption: `I scored ${submittedScore ?? 0} in ${selectedGame.title}`,
+      })
+
+      setShareResult(share)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to create share link'
+      setShareError(message)
+    } finally {
+      setShareLoading(false)
+    }
+  }
+
+  const visibleGames = games.filter((game) => {
+    const category = classifyCategory(game)
+    return homeCategory === 'All' || homeCategory === category
+  })
+
+  const onOpenProfile = () => {
+    navigateToRoute({ name: 'profile' })
+  }
+
+  const onBackToHome = () => {
+    navigateToRoute({ name: 'home' })
   }
 
   return (
-    <Page
-      title="MiniPlay"
-      leading={<span className="profile-chip">{activeProfile?.display_name ?? 'Guest Player'}</span>}
-      trailing={<CoinBadge testId="profile-coin-badge" value={activeProfile?.total_coin ?? 0} />}
-    >
-      <section className="headline-block">
-        <h2>Profile Setup</h2>
-        <p>Anonymous account with persistent local session on this device.</p>
-      </section>
+    <>
+      {/* Splash — visible during initial load, fades out when exiting */}
+      {(appPhase === 'splash' || appPhase === 'splash-exiting') && (
+        <SplashScreen isExiting={appPhase === 'splash-exiting'} />
+      )}
 
-      <Card title="Account Session">
-        {!loading && sessionSource ? (
-          <div
-            data-testid="session-persistence-indicator"
-            className={`session-indicator ${isRestoredSession ? 'is-restored' : 'is-new'}`}
+      {/* Welcome — sits beneath the splash during splash-exiting, then top layer */}
+      {(appPhase === 'splash-exiting' ||
+        appPhase === 'welcome' ||
+        appPhase === 'welcome-exiting') && (
+        <WelcomeScreen
+          user={user}
+          profile={profile}
+          sessionSource={sessionSource}
+          isExiting={appPhase === 'welcome-exiting'}
+          onContinue={onContinueToGames}
+        />
+      )}
+
+      {/* Main app — full game catalog + session flow */}
+      {appPhase === 'main' && (
+        route.name === 'profile' ? (
+          <ProfileScreen
+            user={user}
+            profile={profile}
+            loading={loading}
+            error={error}
+            displayNameInput={displayNameInput}
+            saving={saving}
+            signingOut={signingOut}
+            onBackToHome={onBackToHome}
+            onRefresh={refresh}
+            onDisplayNameChange={setDisplayNameInput}
+            onSubmitDisplayName={onSubmitDisplayName}
+            onSignOut={onSignOut}
+          />
+        ) : route.name === 'share' ? (
+          <ShareScreen
+            slug={route.slug}
+            loading={publicShareLoading}
+            error={publicShareError}
+            sharePost={publicSharePost}
+            onBackToHome={onBackToHome}
+            onRetry={() => loadPublicShare(route.slug)}
+          />
+        ) : (
+      <Page
+        title="MiniPlay"
+        leading={
+          <button
+            type="button"
+            className="home-profile-pill"
+            aria-label="Open profile"
+            data-testid="open-profile-page"
+            onClick={onOpenProfile}
           >
-            <span className="session-dot" aria-hidden="true" />
-            <span>
-              {isRestoredSession
-                ? 'Session restored from this device'
-                : 'New anonymous session created'}
+            <span className="home-profile-avatar" aria-hidden="true">
+              {profile?.display_name?.slice(0, 1).toUpperCase() ?? 'G'}
             </span>
-          </div>
-        ) : null}
+            <span>Profile</span>
+          </button>
+        }
+        trailing={<CoinBadge testId="profile-coin-badge" value={profile?.total_coin ?? 0} />}
+      >
+      {loading ? (
+        <Card title="Loading">
+          <p>Loading your profile and game data...</p>
+        </Card>
+      ) : null}
 
-        {loading ? <p>Loading session and profile...</p> : null}
-
-        {!loading && error ? (
+      {!loading && error ? (
+        <Card title="Unable to load profile">
           <div className="status-block error">
             <p>{error}</p>
             <Button type="button" onClick={() => void refresh()}>
               Retry
             </Button>
           </div>
-        ) : null}
+        </Card>
+      ) : null}
 
-        {!loading && !error && !hasProfile ? (
+      {!loading && !error && !hasProfile ? (
+        <Card title="Profile unavailable">
           <div className="status-block empty">
             <p>Profile not found yet. Tap retry to sync profile.</p>
             <Button type="button" onClick={() => void refresh()}>
               Refresh
             </Button>
           </div>
-        ) : null}
-
-        {!loading && !error && hasProfile ? (
-          <div className="status-block success" data-testid="anonymous-auth-ready">
-            <dl className="kv-list">
-              <div>
-                <dt>User ID</dt>
-                <dd>{user?.id}</dd>
-              </div>
-              <div>
-                <dt>Status</dt>
-                <dd>{activeProfile?.app_status}</dd>
-              </div>
-              <div>
-                <dt>Display Name</dt>
-                <dd>{activeProfile?.display_name ?? '-'}</dd>
-              </div>
-              <div>
-                <dt>Total Coin</dt>
-                <dd>
-                  <CoinBadge value={activeProfile?.total_coin ?? 0} />
-                </dd>
-              </div>
-              <div>
-                <dt>Total Play</dt>
-                <dd>{activeProfile?.total_play_count ?? 0}</dd>
-              </div>
-            </dl>
-
-            <form className="inline-form" onSubmit={(event) => void onSubmitDisplayName(event)}>
-              <input
-                value={displayNameInput}
-                onChange={(event) => setDisplayNameInput(event.target.value)}
-                placeholder="Update display name"
-                aria-label="Display name"
-                maxLength={32}
-              />
-              <Button type="submit" fullWidth disabled={saving}>
-                {saving ? 'Saving...' : 'Save'}
-              </Button>
-            </form>
-
-            <Button
-              type="button"
-              variant="secondary"
-              fullWidth
-                data-testid="signout-control"
-              disabled={signingOut}
-              onClick={() => void onSignOut()}
-            >
-              {signingOut ? 'Signing out...' : 'Sign out and create new anonymous session'}
-            </Button>
-          </div>
-        ) : null}
-      </Card>
+        </Card>
+      ) : null}
 
       <Card title="Game Catalog" className="game-card" data-testid="game-catalog">
         {screen === 'catalog' ? (
-          <section className="catalog-grid" data-testid="game-catalog-list">
-            <article className="catalog-item" data-testid="reaction-game-card">
-              <div className="catalog-thumb" />
-              <h3>Reaction Time</h3>
-              <p>Tap as fast as possible when the signal appears.</p>
-              <Button fullWidth data-testid="open-reaction-detail" onClick={onOpenDetail}>
-                Open Game
-              </Button>
-            </article>
-          </section>
+          <>
+            {!loading && !error && hasProfile ? (
+              <section className="home-hero" data-testid="anonymous-auth-ready">
+                <h2>Ready for a challenge?</h2>
+                <p>Pick a game to earn coins and top the leaderboard.</p>
+                <div
+                  data-testid="session-persistence-indicator"
+                  className={`session-indicator ${isRestoredSession ? 'is-restored' : 'is-new'}`}
+                >
+                  <span className="session-dot" aria-hidden="true" />
+                  <span>
+                    {isRestoredSession
+                      ? 'Session restored from this device'
+                      : 'New anonymous session created'}
+                  </span>
+                </div>
+              </section>
+            ) : null}
+
+            {!loading && !error && hasProfile ? (
+              <>
+                <HomeCategoryChips value={homeCategory} onChange={setHomeCategory} />
+
+                <section className="home-games-grid" data-testid="game-catalog-list">
+                  {gamesLoading ? <p>Loading active games...</p> : null}
+                  {gamesError ? <p className="inline-error">{gamesError}</p> : null}
+                  {!gamesLoading && !gamesError && visibleGames.length === 0 ? (
+                    <p>No active games found.</p>
+                  ) : null}
+
+                  {!gamesLoading &&
+                    !gamesError &&
+                    visibleGames.map((game) => {
+                      const category = classifyCategory(game)
+                      const reward = Number(game.config.rewardCoin ?? 0)
+                      const isReaction = game.slug === 'reaction-time'
+
+                      return (
+                        <HomeGameCard
+                          key={game.id}
+                          title={game.title}
+                          category={category}
+                          reward={reward}
+                          variant={toCardVariant(category)}
+                          testId={isReaction ? 'reaction-game-card' : undefined}
+                          buttonTestId={isReaction ? 'open-reaction-detail' : undefined}
+                          onAction={() => onOpenDetail(game)}
+                        />
+                      )
+                    })}
+                </section>
+              </>
+            ) : null}
+          </>
         ) : null}
 
         {screen === 'detail' ? (
           <section className="detail-panel" data-testid="reaction-detail-screen">
-            <h3>Reaction Time</h3>
-            <p>Wait for signal, tap fast, and beat your own best time.</p>
+            <h3>{selectedGame?.title ?? 'Game Detail'}</h3>
+            <p>{selectedGame?.description ?? 'Start a new session to begin.'}</p>
+            <p>Category: {selectedGameCategory}</p>
+            <p>Reward: +{Number(selectedGame?.config.rewardCoin ?? 0)} coins</p>
             {sessionError ? (
               <p className="inline-error" data-testid="session-start-error">
                 {sessionError}
@@ -220,31 +589,73 @@ function App() {
         {screen === 'play' ? (
           <section className="game-frame" data-testid="game-play-screen" aria-label="Portrait game area preview">
             <div className="game-frame-inner">
-              <p>TAP TO START</p>
+              <p>TAP TO SCORE</p>
               <button
                 type="button"
                 className="tap-orb"
                 data-testid="tap-play-area"
                 aria-label="Tap play area"
-                onClick={onFinishPlay}
+                disabled={submittingScore}
+                onClick={() => void onFinishPlay()}
               >
-                Tap
+                {submittingScore ? 'Submitting...' : 'Tap'}
               </button>
               <small data-testid="session-started-state">
                 Session active: {sessionId ?? '-'}
               </small>
+              {sessionError ? <small className="inline-error">{sessionError}</small> : null}
             </div>
           </section>
         ) : null}
 
         {screen === 'result' ? (
           <section className="result-panel" data-testid="score-result-screen">
-            <h3>Reaction Time</h3>
+            <h3>{selectedGame?.title ?? 'Result'}</h3>
             <p data-testid="reaction-time-result">{reactionTimeMs ?? 0}ms</p>
-            <CoinBadge value={50} />
+            <p>Score: {submittedScore ?? 0}</p>
+            <p>Validation: {submitResult?.validationStatus ?? '-'}</p>
+            <CoinBadge value={submitResult?.coinReward ?? 0} />
+            {typeof submitResult?.rankHint === 'number' ? <p>Rank hint: #{submitResult.rankHint}</p> : null}
+            {typeof submitResult?.totalCoin === 'number' ? <p>Total coin: {submitResult.totalCoin}</p> : null}
+            {playDurationMs ? <p>Duration: {playDurationMs}ms</p> : null}
+
+            <section className="detail-actions">
+              <Button fullWidth variant="secondary" disabled={shareLoading} onClick={() => void onCreateShare()}>
+                {shareLoading ? 'Creating Share...' : 'Create Share Link'}
+              </Button>
+            </section>
+
+            {shareError ? <p className="inline-error">{shareError}</p> : null}
+            {shareResult ? (
+              <p>
+                Share URL:{' '}
+                <a href={shareResult.shareUrl} target="_blank" rel="noreferrer">
+                  {shareResult.shareUrl}
+                </a>
+              </p>
+            ) : null}
+
+            <section>
+              <h4>Leaderboard</h4>
+              {leaderboardLoading ? <p>Loading leaderboard...</p> : null}
+              {leaderboardError ? <p className="inline-error">{leaderboardError}</p> : null}
+              {!leaderboardLoading && !leaderboardError && leaderboard.length === 0 ? (
+                <p>No leaderboard data yet.</p>
+              ) : null}
+              {!leaderboardLoading && !leaderboardError && leaderboard.length > 0 ? (
+                <ol>
+                  {leaderboard.map((item) => (
+                    <li key={`${item.user_id}-${item.created_at}`}>
+                      {(item.display_name ?? 'Guest')} - {item.score}
+                    </li>
+                  ))}
+                </ol>
+              ) : null}
+            </section>
+
             <div className="detail-actions">
-              <Button fullWidth data-testid="play-again-action" onClick={onPlayAgain}>
-                Play Again
+              <Button fullWidth data-testid="play-again-action" disabled={startingSession} onClick={onPlayAgain}>
+                {startingSession ? 'Starting...' : 'Play Again'}
               </Button>
               <Button fullWidth variant="secondary" onClick={onBackToCatalog}>
                 Back to Games
@@ -254,8 +665,11 @@ function App() {
         ) : null}
       </Card>
 
-      <footer className="foot-note">Ready for Phase 2 game catalog screen implementation.</footer>
-    </Page>
+      <footer className="foot-note">New home design active. More games unlock in Phase 2.</footer>
+      </Page>
+        )
+      )}
+    </>
   )
 }
 

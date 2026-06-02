@@ -3,6 +3,7 @@
   --color-bg-accent: #f8f9fa;
   --color-surface: #ffffff;
   --color-surface-low: #f3f4f5;
+  --color-surface-mid: #edeeef;
   --color-surface-variant: #e1e3e4;
   --color-text: #191c1d;
   --color-text-muted: #4a4455;
@@ -12,6 +13,7 @@
   --color-brand-soft: #eaddff;
   --color-brand-container: #7c3aed;
   --color-brand-on: #ffffff;
+  --color-accent: #bf2076;
   --color-coin-bg: #fed01b;
   --color-coin-text: #6f5900;
   --color-success-bg: #f2fbfa;

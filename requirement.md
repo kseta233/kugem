@@ -922,48 +922,56 @@ Important: `SUPABASE_SERVICE_ROLE_KEY` hanya boleh ada di server/function enviro
 
 ## 19. MVP Delivery Plan
 
+Status legend:
+
+- [x] Done (sudah ada implementasi di repo)
+- [ ] Pending
+- [ ] In progress (ditandai dengan catatan)
+
+Progress snapshot per 2 Juni 2026 (berdasarkan kondisi codebase saat ini).
+
 ### Phase 0 — Supabase Foundation
 
-1. Create Supabase project.
-2. Enable anonymous sign-in.
-3. Create database schema.
-4. Enable RLS.
-5. Create initial policies.
-6. Seed first game.
+- [x] Create Supabase project.
+- [ ] Enable anonymous sign-in. (in progress: local config sudah enable, hosted project setting masih manual)
+- [x] Create database schema.
+- [x] Enable RLS.
+- [x] Create initial policies.
+- [x] Seed first game.
 
 ### Phase 1 — Auth + Profile
 
-1. Frontend anonymous login.
-2. Auto create/upsert profile.
-3. Display profile summary.
-4. Edit display name.
+- [x] Frontend anonymous login.
+- [x] Auto create/upsert profile.
+- [x] Display profile summary.
+- [x] Edit display name.
 
 ### Phase 2 — Game Catalog
 
-1. List active games.
-2. Open game detail.
-3. Read game config.
+- [x] List active games.
+- [x] Open game detail.
+- [x] Read game config.
 
 ### Phase 3 — Game Session
 
-1. Create `start_game_session` Edge Function.
-2. Integrate frontend start session.
-3. Store session ID in game runtime state.
+- [x] Create `start_game_session` Edge Function.
+- [x] Integrate frontend start session.
+- [x] Store session ID in game runtime state.
 
 ### Phase 4 — Score + Coin
 
-1. Create `submit_score` Edge Function.
-2. Validate score.
-3. Insert score.
-4. Update coin ledger.
-5. Update total coin.
-6. Show result page.
+- [x] Create `submit_score` Edge Function.
+- [x] Validate score.
+- [x] Insert score.
+- [x] Update coin ledger.
+- [x] Update total coin.
+- [x] Show result page.
 
 ### Phase 5 — Leaderboard + Share
 
-1. Query top scores.
-2. Create share post metadata.
-3. Generate share page.
+- [x] Query top scores.
+- [x] Create share post metadata.
+- [x] Generate share page.
 
 ## 20. Initial Seed Data
 
