@@ -4,7 +4,7 @@ MVP casual mini-game platform built with React, Vite, TypeScript, and Supabase.
 
 ## Prerequisites
 
-- Node.js 22.x
+- Node.js >=22
 - npm 10+
 
 ## Setup
