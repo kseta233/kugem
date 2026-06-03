@@ -1,4 +1,4 @@
-export type UserAppStatus = 'anonymous' | 'registered' | 'blocked'
+export type UserAppStatus = 'unregistered' | 'anonymous' | 'registered' | 'blocked'
 
 export type Profile = {
   id: string

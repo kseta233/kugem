@@ -1,4 +1,4 @@
-import { Button, Card, CoinBadge, Page } from '@/shared/components'
+import { Button, Card, CoinBadge, Icon, Page } from '@/shared/components'
 import type { PublicSharePost } from '@/features/share/share.service'
 
 type ShareScreenProps = {
@@ -23,7 +23,7 @@ export function ShareScreen({
       title="Shared Result"
       leading={
         <button type="button" className="home-profile-pill" data-testid="back-to-home" onClick={onBackToHome}>
-          <span aria-hidden="true">←</span>
+          <Icon name="arrow-left" size={16} className="app-icon" />
           <span>Home</span>
         </button>
       }

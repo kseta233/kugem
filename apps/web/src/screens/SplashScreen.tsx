@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
+import { Icon } from '@/shared/components'
+
 interface Props {
   isExiting: boolean
 }
@@ -111,7 +113,7 @@ export function SplashScreen({ isExiting }: Props) {
               margin: '0 auto',
             }}
           >
-            <span style={{ fontSize: 48, lineHeight: 1 }}>🎮</span>
+            <Icon name="gamepad" size={48} className="app-icon app-icon--brand" />
           </div>
         </div>
 

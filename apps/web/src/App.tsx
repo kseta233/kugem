@@ -1,4 +1,3 @@
-import type { FormEvent } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAnonymousAuth } from '@/features/auth/useAnonymousAuth'
 import { getGames } from '@/features/games/games.service'
@@ -14,6 +13,7 @@ import { getPublicSharePostBySlug, type PublicSharePost } from '@/features/share
 import { Button, Card, CoinBadge, HomeCategoryChips, HomeGameCard, Page } from '@/shared/components'
 import type { HomeCategory } from '@/shared/components'
 import { ProfileScreen } from '@/screens/ProfileScreen'
+import { AuthScreen } from '@/screens/AuthScreen'
 import { ShareScreen } from '@/screens/ShareScreen'
 import { SplashScreen } from '@/screens/SplashScreen'
 import { WelcomeScreen } from '@/screens/WelcomeScreen'
@@ -22,14 +22,23 @@ import type { LeaderboardItem } from '@/types/leaderboard'
 
 type GameScreen = 'catalog' | 'detail' | 'play' | 'result'
 type AppPhase = 'splash' | 'splash-exiting' | 'welcome' | 'welcome-exiting' | 'main'
-type AppRoute = { name: 'home' } | { name: 'profile' } | { name: 'share'; slug: string }
+type AppRoute =
+  | { name: 'home' }
+  | { name: 'profile' }
+  | { name: 'auth' }
+  | { name: 'share'; slug: string }
 
 const HOME_PATH = '/'
 const PROFILE_PATH = '/profile'
+const AUTH_PATH = '/auth'
 
 const resolveRouteFromPath = (pathname: string): AppRoute => {
   if (pathname.toLowerCase() === PROFILE_PATH) {
     return { name: 'profile' }
+  }
+
+  if (pathname.toLowerCase() === AUTH_PATH) {
+    return { name: 'auth' }
   }
 
   const shareMatch = pathname.match(/^\/share\/([^/]+)\/?$/i)
@@ -46,6 +55,9 @@ const resolveRouteFromPath = (pathname: string): AppRoute => {
 const resolvePathFromRoute = (route: AppRoute): string => {
   if (route.name === 'profile') {
     return PROFILE_PATH
+  }
+  if (route.name === 'auth') {
+    return AUTH_PATH
   }
   if (route.name === 'share') {
     return `/share/${encodeURIComponent(route.slug)}`
@@ -97,8 +109,18 @@ const toCardVariant = (category: HomeCategory): 'reaction' | 'memory' | 'speed' 
 }
 
 function App() {
-  const { user, profile, sessionSource, loading, error, refresh, signOutAndRestart, updateDisplayName } =
-    useAnonymousAuth()
+  const {
+    user,
+    profile,
+    sessionSource,
+    loading,
+    error,
+    refresh,
+    signOutAndRestart,
+    updateDisplayName,
+    signInWithEmail,
+    signUpWithEmail,
+  } = useAnonymousAuth()
 
   const [route, setRoute] = useState<AppRoute>(() => {
     if (typeof window === 'undefined') {
@@ -120,7 +142,7 @@ function App() {
   const tryAdvanceFromSplash = useCallback(() => {
     if (splashDoneRef.current && authDoneRef.current && appPhaseRef.current === 'splash') {
       setAppPhase('splash-exiting')
-      setTimeout(() => setAppPhase(route.name === 'share' ? 'main' : 'welcome'), 420)
+      setTimeout(() => setAppPhase(route.name === 'share' || route.name === 'auth' ? 'main' : 'welcome'), 420)
     }
   }, [route.name])
 
@@ -147,7 +169,6 @@ function App() {
   }, [])
 
   // ── Game screen state ─────────────────────────────────────────────────────
-  const [displayNameInput, setDisplayNameInput] = useState('')
   const [saving, setSaving] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
   const [screen, setScreen] = useState<GameScreen>('catalog')
@@ -176,6 +197,18 @@ function App() {
   const [reactionTimeMs, setReactionTimeMs] = useState<number | null>(null)
   const [homeCategory, setHomeCategory] = useState<HomeCategory>('All')
 
+  const onSaveWelcomeDisplayName = useCallback(
+    async (displayName: string) => {
+      try {
+        setSaving(true)
+        await updateDisplayName(displayName)
+      } finally {
+        setSaving(false)
+      }
+    },
+    [updateDisplayName],
+  )
+
   useEffect(() => {
     const onPopState = () => {
       setRoute(resolveRouteFromPath(window.location.pathname))
@@ -198,20 +231,39 @@ function App() {
     [route],
   )
 
-  const onSubmitDisplayName = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
+  const onOpenAuthPage = useCallback(() => {
+    setAppPhase('main')
+    navigateToRoute({ name: 'auth' })
+  }, [navigateToRoute])
 
-    try {
-      setSaving(true)
-      await updateDisplayName(displayNameInput)
-      setDisplayNameInput('')
-    } finally {
-      setSaving(false)
-    }
-  }
+  const onAuthBackToWelcome = useCallback(() => {
+    setAppPhase('welcome')
+    navigateToRoute({ name: 'home' })
+  }, [navigateToRoute])
+
+  const onAuthSignIn = useCallback(
+    async (email: string, password: string) => {
+      await signInWithEmail(email, password)
+      setAppPhase('welcome')
+      setScreen('catalog')
+      navigateToRoute({ name: 'home' })
+    },
+    [navigateToRoute, signInWithEmail],
+  )
+
+  const onAuthSignUp = useCallback(
+    async (displayName: string, email: string, password: string) => {
+      await signUpWithEmail(displayName, email, password)
+      setAppPhase('welcome')
+      setScreen('catalog')
+      navigateToRoute({ name: 'home' })
+    },
+    [navigateToRoute, signUpWithEmail],
+  )
 
   const hasProfile = Boolean(profile)
   const isRestoredSession = sessionSource === 'restored'
+  const homeDisplayName = profile?.display_name?.trim() || 'Guest'
 
   const loadGames = useCallback(async () => {
     try {
@@ -279,6 +331,9 @@ function App() {
   const onSignOut = async () => {
     try {
       setSigningOut(true)
+      setScreen('catalog')
+      navigateToRoute({ name: 'home' })
+      setAppPhase('splash')
       await signOutAndRestart()
     } finally {
       setSigningOut(false)
@@ -420,29 +475,35 @@ function App() {
         appPhase === 'welcome' ||
         appPhase === 'welcome-exiting') && (
         <WelcomeScreen
-          user={user}
           profile={profile}
           sessionSource={sessionSource}
           isExiting={appPhase === 'welcome-exiting'}
+          savingDisplayName={saving}
+          onSaveDisplayName={onSaveWelcomeDisplayName}
+          onOpenAuth={onOpenAuthPage}
           onContinue={onContinueToGames}
         />
       )}
 
       {/* Main app — full game catalog + session flow */}
       {appPhase === 'main' && (
-        route.name === 'profile' ? (
+        route.name === 'auth' ? (
+          <AuthScreen
+            loading={loading}
+            error={error}
+            onBack={onAuthBackToWelcome}
+            onSignIn={onAuthSignIn}
+            onSignUp={onAuthSignUp}
+          />
+        ) : route.name === 'profile' ? (
           <ProfileScreen
             user={user}
             profile={profile}
             loading={loading}
             error={error}
-            displayNameInput={displayNameInput}
-            saving={saving}
             signingOut={signingOut}
             onBackToHome={onBackToHome}
             onRefresh={refresh}
-            onDisplayNameChange={setDisplayNameInput}
-            onSubmitDisplayName={onSubmitDisplayName}
             onSignOut={onSignOut}
           />
         ) : route.name === 'share' ? (
@@ -506,7 +567,7 @@ function App() {
           <>
             {!loading && !error && hasProfile ? (
               <section className="home-hero" data-testid="anonymous-auth-ready">
-                <h2>Ready for a challenge?</h2>
+                <h2>{homeDisplayName}, Ready for Challenge?</h2>
                 <p>Pick a game to earn coins and top the leaderboard.</p>
                 <div
                   data-testid="session-persistence-indicator"
@@ -515,8 +576,8 @@ function App() {
                   <span className="session-dot" aria-hidden="true" />
                   <span>
                     {isRestoredSession
-                      ? 'Session restored from this device'
-                      : 'New anonymous session created'}
+                      ? 'Local guest session restored'
+                      : 'Local guest session started'}
                   </span>
                 </div>
               </section>

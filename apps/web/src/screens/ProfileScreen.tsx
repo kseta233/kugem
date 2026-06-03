@@ -1,6 +1,5 @@
-import type { FormEvent } from 'react'
 import type { User } from '@supabase/supabase-js'
-import { Button, Card, CoinBadge, Page } from '@/shared/components'
+import { Button, Card, CoinBadge, Icon, Page } from '@/shared/components'
 import type { Profile } from '@/types/profile'
 
 interface ProfileScreenProps {
@@ -8,13 +7,9 @@ interface ProfileScreenProps {
   profile: Profile | null
   loading: boolean
   error: string | null
-  displayNameInput: string
-  saving: boolean
   signingOut: boolean
   onBackToHome: () => void
   onRefresh: () => Promise<void>
-  onDisplayNameChange: (value: string) => void
-  onSubmitDisplayName: (event: FormEvent<HTMLFormElement>) => Promise<void>
   onSignOut: () => Promise<void>
 }
 
@@ -23,13 +18,9 @@ export function ProfileScreen({
   profile,
   loading,
   error,
-  displayNameInput,
-  saving,
   signingOut,
   onBackToHome,
   onRefresh,
-  onDisplayNameChange,
-  onSubmitDisplayName,
   onSignOut,
 }: ProfileScreenProps) {
   const hasProfile = Boolean(profile)
@@ -44,7 +35,7 @@ export function ProfileScreen({
           data-testid="back-to-home"
           onClick={onBackToHome}
         >
-          <span aria-hidden="true">←</span>
+          <Icon name="arrow-left" size={16} className="app-icon" />
           <span>Home</span>
         </button>
       }
@@ -95,19 +86,6 @@ export function ProfileScreen({
                 <dd>{profile?.total_play_count ?? 0}</dd>
               </div>
             </dl>
-
-            <form className="inline-form" onSubmit={(event) => void onSubmitDisplayName(event)}>
-              <input
-                value={displayNameInput}
-                onChange={(event) => onDisplayNameChange(event.target.value)}
-                placeholder="Update display name"
-                aria-label="Display name"
-                maxLength={32}
-              />
-              <Button type="submit" fullWidth disabled={saving}>
-                {saving ? 'Saving...' : 'Save'}
-              </Button>
-            </form>
 
             <Button
               type="button"

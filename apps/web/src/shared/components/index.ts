@@ -1,6 +1,7 @@
 export { Button } from '@/shared/components/Button'
 export { Card } from '@/shared/components/Card'
 export { CoinBadge } from '@/shared/components/CoinBadge'
+export { Icon } from '@/shared/components/Icon'
 export { HomeCategoryChips } from '@/shared/components/home/HomeCategoryChips'
 export type { HomeCategory } from '@/shared/components/home/HomeCategoryChips'
 export { HomeGameCard } from '@/shared/components/home/HomeGameCard'

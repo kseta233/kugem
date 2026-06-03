@@ -1,4 +1,4 @@
-import { Button, Card } from '@/shared/components'
+import { Button, Card, Icon } from '@/shared/components'
 
 type HomeGameCardVariant = 'reaction' | 'memory' | 'speed' | 'locked'
 
@@ -32,22 +32,17 @@ export function HomeGameCard({
     <Card className={cardClass} data-testid={testId}>
       <div className={mediaClass} aria-hidden="true">
         {variant === 'memory' ? (
-          <span className="material-symbols-outlined home-media-icon">extension</span>
+          <Icon name="puzzle" className="home-media-icon" size={52} />
         ) : null}
         {variant === 'speed' ? (
-          <span className="material-symbols-outlined home-media-icon">touch_app</span>
+          <Icon name="tap" className="home-media-icon" size={52} />
         ) : null}
         {variant === 'locked' ? (
-          <span className="material-symbols-outlined home-media-icon">lock</span>
+          <Icon name="lock" className="home-media-icon" size={52} />
         ) : null}
         {variant !== 'locked' ? (
           <div className="home-reward-pill">
-            <span
-              className="material-symbols-outlined"
-              style={{ fontVariationSettings: "'FILL' 1", fontSize: 14 }}
-            >
-              monetization_on
-            </span>
+            <Icon name="coin" size={14} className="app-icon app-icon--coin" />
             <span>+{reward}</span>
           </div>
         ) : null}
@@ -66,13 +61,9 @@ export function HomeGameCard({
         data-testid={buttonTestId}
       >
         {disabled ? (
-          <span className="material-symbols-outlined" aria-hidden="true">
-            hourglass_empty
-          </span>
+          <Icon name="hourglass" size={16} className="app-icon" />
         ) : (
-          <span className="material-symbols-outlined" aria-hidden="true">
-            play_arrow
-          </span>
+          <Icon name="play" size={16} className="app-icon" />
         )}
         {actionLabel}
       </Button>

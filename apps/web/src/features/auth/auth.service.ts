@@ -8,6 +8,58 @@ export type AnonymousSession = {
   source: SessionSource
 }
 
+const LOCAL_ANON_SESSION_KEY = 'miniplay.local.anonymous.user-id'
+
+const readLocalAnonymousUserId = (): string | null => {
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  return window.localStorage.getItem(LOCAL_ANON_SESSION_KEY)
+}
+
+const writeLocalAnonymousUserId = (userId: string): void => {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  window.localStorage.setItem(LOCAL_ANON_SESSION_KEY, userId)
+}
+
+const clearLocalAnonymousUserId = (): void => {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  window.localStorage.removeItem(LOCAL_ANON_SESSION_KEY)
+}
+
+const clearLocalAppStorage = (): void => {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  const isAuthStorageKey = (key: string) =>
+    key === LOCAL_ANON_SESSION_KEY ||
+    key.startsWith('miniplay.') ||
+    key.startsWith('sb-') ||
+    key.includes('supabase.auth')
+
+  for (let index = window.localStorage.length - 1; index >= 0; index -= 1) {
+    const key = window.localStorage.key(index)
+    if (key && isAuthStorageKey(key)) {
+      window.localStorage.removeItem(key)
+    }
+  }
+
+  for (let index = window.sessionStorage.length - 1; index >= 0; index -= 1) {
+    const key = window.sessionStorage.key(index)
+    if (key && isAuthStorageKey(key)) {
+      window.sessionStorage.removeItem(key)
+    }
+  }
+}
+
 export const getCurrentUser = async (): Promise<User | null> => {
   const {
     data: { user },
@@ -27,6 +79,17 @@ export const getCurrentUser = async (): Promise<User | null> => {
 export const signInAnonymously = async (): Promise<AnonymousSession> => {
   const existingUser = await getCurrentUser()
   if (existingUser) {
+    if (existingUser.is_anonymous) {
+      const localAnonymousUserId = readLocalAnonymousUserId()
+      const source: SessionSource = localAnonymousUserId === existingUser.id ? 'restored' : 'new'
+      writeLocalAnonymousUserId(existingUser.id)
+
+      return {
+        user: existingUser,
+        source,
+      }
+    }
+
     return {
       user: existingUser,
       source: 'restored',
@@ -38,10 +101,42 @@ export const signInAnonymously = async (): Promise<AnonymousSession> => {
     throw error ?? new Error('Anonymous sign in failed')
   }
 
+  writeLocalAnonymousUserId(data.user.id)
+
   return {
     user: data.user,
     source: 'new',
   }
+}
+
+export const signInWithEmail = async (email: string, password: string): Promise<User> => {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  })
+
+  if (error || !data.user) {
+    throw error ?? new Error('Email sign in failed')
+  }
+
+  clearLocalAnonymousUserId()
+
+  return data.user
+}
+
+export const signUpWithEmail = async (email: string, password: string): Promise<User> => {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+  })
+
+  if (error || !data.user) {
+    throw error ?? new Error('Email sign up failed')
+  }
+
+  clearLocalAnonymousUserId()
+
+  return data.user
 }
 
 export const signOut = async (): Promise<void> => {
@@ -49,4 +144,7 @@ export const signOut = async (): Promise<void> => {
   if (error) {
     throw error
   }
+
+  clearLocalAnonymousUserId()
+  clearLocalAppStorage()
 }

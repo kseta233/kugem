@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
-import { signInAnonymously, signOut } from '@/features/auth/auth.service'
+import { signInAnonymously, signInWithEmail, signOut, signUpWithEmail } from '@/features/auth/auth.service'
 import type { SessionSource } from '@/features/auth/auth.service'
 import { getProfile, upsertProfile, updateProfile } from '@/features/profile/profile.service'
 import type { Profile } from '@/types/profile'
+import type { UserAppStatus } from '@/types/profile'
 
 type UseAnonymousAuthResult = {
   user: User | null
@@ -14,16 +15,20 @@ type UseAnonymousAuthResult = {
   refresh: () => Promise<void>
   signOutAndRestart: () => Promise<void>
   updateDisplayName: (displayName: string) => Promise<void>
+  signInWithEmail: (email: string, password: string) => Promise<void>
+  signUpWithEmail: (displayName: string, email: string, password: string) => Promise<void>
 }
 
 const DEFAULT_DISPLAY_NAME = 'Guest'
 
-const createFallbackProfile = (user: User): Profile => ({
+const resolveUserStatus = (user: User): UserAppStatus => (user.is_anonymous ? 'unregistered' : 'registered')
+
+const createFallbackProfile = (user: User, displayName: string = DEFAULT_DISPLAY_NAME): Profile => ({
   id: user.id,
   username: null,
-  display_name: DEFAULT_DISPLAY_NAME,
+  display_name: displayName,
   avatar_url: null,
-  app_status: user.is_anonymous ? 'anonymous' : 'registered',
+  app_status: resolveUserStatus(user),
   total_coin: 0,
   total_play_count: 0,
   created_at: new Date().toISOString(),
@@ -37,6 +42,42 @@ export const useAnonymousAuth = (): UseAnonymousAuthResult => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const syncProfile = useCallback(async (authedUser: User, preferredDisplayName?: string) => {
+    const resolvedDisplayName = preferredDisplayName?.trim() || DEFAULT_DISPLAY_NAME
+    const resolvedStatus = resolveUserStatus(authedUser)
+
+    const existingProfile = await getProfile(authedUser.id)
+    if (!existingProfile) {
+      await upsertProfile({
+        id: authedUser.id,
+        display_name: resolvedDisplayName,
+        app_status: resolvedStatus,
+      })
+
+      const createdProfile = await getProfile(authedUser.id)
+      setProfile(createdProfile ?? createFallbackProfile(authedUser, resolvedDisplayName))
+      return
+    }
+
+    const nextDisplayName = existingProfile.display_name?.trim() || resolvedDisplayName
+    const requiresSync =
+      existingProfile.app_status !== resolvedStatus || existingProfile.display_name !== nextDisplayName
+
+    if (!requiresSync) {
+      setProfile(existingProfile)
+      return
+    }
+
+    await upsertProfile({
+      id: authedUser.id,
+      display_name: nextDisplayName,
+      app_status: resolvedStatus,
+    })
+
+    const syncedProfile = await getProfile(authedUser.id)
+    setProfile(syncedProfile ?? createFallbackProfile(authedUser, nextDisplayName))
+  }, [])
+
   const bootstrap = useCallback(async () => {
     setLoading(true)
     setError(null)
@@ -46,26 +87,14 @@ export const useAnonymousAuth = (): UseAnonymousAuthResult => {
       const authedUser = session.user
       setUser(authedUser)
       setSessionSource(session.source)
-
-      try {
-        await upsertProfile({
-          id: authedUser.id,
-          display_name: DEFAULT_DISPLAY_NAME,
-          app_status: authedUser.is_anonymous ? 'anonymous' : 'registered',
-        })
-
-        const nextProfile = await getProfile(authedUser.id)
-        setProfile(nextProfile ?? createFallbackProfile(authedUser))
-      } catch {
-        setProfile(createFallbackProfile(authedUser))
-      }
+      await syncProfile(authedUser)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unexpected auth error'
       setError(message)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [syncProfile])
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -81,6 +110,45 @@ export const useAnonymousAuth = (): UseAnonymousAuthResult => {
     await signOut()
     await bootstrap()
   }, [bootstrap])
+
+  const signInWithEmailCredentials = useCallback(async (email: string, password: string) => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const authedUser = await signInWithEmail(email.trim(), password)
+      setUser(authedUser)
+      setSessionSource('new')
+      await syncProfile(authedUser)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Email sign-in failed'
+      setError(message)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [syncProfile])
+
+  const signUpWithEmailCredentials = useCallback(
+    async (displayName: string, email: string, password: string) => {
+      setLoading(true)
+      setError(null)
+
+      try {
+        const authedUser = await signUpWithEmail(email.trim(), password)
+        setUser(authedUser)
+        setSessionSource('new')
+        await syncProfile(authedUser, displayName)
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Email sign-up failed'
+        setError(message)
+        throw err
+      } finally {
+        setLoading(false)
+      }
+    },
+    [syncProfile],
+  )
 
   const updateDisplayName = useCallback(
     async (displayName: string) => {
@@ -106,5 +174,7 @@ export const useAnonymousAuth = (): UseAnonymousAuthResult => {
     refresh,
     signOutAndRestart,
     updateDisplayName,
+    signInWithEmail: signInWithEmailCredentials,
+    signUpWithEmail: signUpWithEmailCredentials,
   }
 }

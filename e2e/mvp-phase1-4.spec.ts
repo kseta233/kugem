@@ -10,6 +10,10 @@ test.describe('MVP Phase 1-4 mobile flow', () => {
     await expect(page.getByTestId('profile-coin-badge')).toBeVisible()
 
     // Proceed to main game catalog
+    const displayNameInput = page.getByTestId('welcome-display-name-input')
+    if (await displayNameInput.isVisible().catch(() => false)) {
+      await displayNameInput.fill('Playwright Hero')
+    }
     await page.getByTestId('continue-to-games').click()
 
     await expect(page.getByTestId('game-catalog')).toBeVisible()
