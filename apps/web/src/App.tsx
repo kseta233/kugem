@@ -31,11 +31,15 @@ type AppRoute =
   | { name: 'home' }
   | { name: 'profile' }
   | { name: 'auth' }
+  | { name: 'yinyang-intro' }
+  | { name: 'yinyang-play' }
   | { name: 'share'; slug: string }
 
 const HOME_PATH = '/'
 const PROFILE_PATH = '/profile'
 const AUTH_PATH = '/auth'
+const YINYANG_INTRO_PATH = '/game/yinyang/intro'
+const YINYANG_PLAY_PATH = '/game/yinyang/play'
 
 const resolveRouteFromPath = (pathname: string): AppRoute => {
   if (pathname.toLowerCase() === PROFILE_PATH) {
@@ -44,6 +48,14 @@ const resolveRouteFromPath = (pathname: string): AppRoute => {
 
   if (pathname.toLowerCase() === AUTH_PATH) {
     return { name: 'auth' }
+  }
+
+  if (pathname.toLowerCase() === YINYANG_INTRO_PATH) {
+    return { name: 'yinyang-intro' }
+  }
+
+  if (pathname.toLowerCase() === YINYANG_PLAY_PATH) {
+    return { name: 'yinyang-play' }
   }
 
   const shareMatch = pathname.match(/^\/share\/([^/]+)\/?$/i)
@@ -63,6 +75,12 @@ const resolvePathFromRoute = (route: AppRoute): string => {
   }
   if (route.name === 'auth') {
     return AUTH_PATH
+  }
+  if (route.name === 'yinyang-intro') {
+    return YINYANG_INTRO_PATH
+  }
+  if (route.name === 'yinyang-play') {
+    return YINYANG_PLAY_PATH
   }
   if (route.name === 'share') {
     return `/share/${encodeURIComponent(route.slug)}`
@@ -147,7 +165,18 @@ function App() {
   const tryAdvanceFromSplash = useCallback(() => {
     if (splashDoneRef.current && authDoneRef.current && appPhaseRef.current === 'splash') {
       setAppPhase('splash-exiting')
-      setTimeout(() => setAppPhase(route.name === 'share' || route.name === 'auth' ? 'main' : 'welcome'), 420)
+      setTimeout(
+        () =>
+          setAppPhase(
+            route.name === 'share' ||
+              route.name === 'auth' ||
+              route.name === 'yinyang-intro' ||
+              route.name === 'yinyang-play'
+              ? 'main'
+              : 'welcome',
+          ),
+        420,
+      )
     }
   }, [route.name])
 
@@ -369,10 +398,10 @@ function App() {
     setShareError(null)
   }
 
-  const onStartSession = async () => {
+  const onStartSession = async ({ forYinYang = false }: { forYinYang?: boolean } = {}): Promise<boolean> => {
     if (!selectedGame) {
       setSessionError('No game selected')
-      return
+      return false
     }
 
     try {
@@ -383,9 +412,15 @@ function App() {
       setSessionId(session.sessionId)
       setYinYangPlayResult(null)
       setScreen('play')
+
+       if (forYinYang) {
+        navigateToRoute({ name: 'yinyang-play' })
+      }
+      return true
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to start game session'
       setSessionError(message)
+      return false
     } finally {
       setStartingSession(false)
     }
@@ -422,7 +457,11 @@ function App() {
       }
 
       await refresh()
-      setScreen('result')
+      if (isYinYang) {
+        setScreen('play')
+      } else {
+        setScreen('result')
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to submit score'
       setSessionError(message)
@@ -445,7 +484,7 @@ function App() {
     setSubmitResult(null)
     setSubmittedScore(null)
     setYinYangPlayResult(null)
-    void onStartSession()
+    void onStartSession({ forYinYang: isYinYangSelected })
   }
 
   const onCreateShare = async () => {
@@ -558,7 +597,44 @@ function App() {
     navigateToRoute({ name: 'home' })
   }
 
+  const onOpenYinYangIntro = () => {
+    if (!selectedGame || selectedGame.slug !== 'yinyang-samurai') {
+      return
+    }
+
+    setSessionError(null)
+    setShareError(null)
+    setNativeShareStatus(null)
+    setYinYangPlayResult(null)
+    setSubmitResult(null)
+    setShareResult(null)
+    setScreen('play')
+    navigateToRoute({ name: 'yinyang-intro' })
+  }
+
+  const onCloseYinYangFullscreen = () => {
+    setScreen('detail')
+    setSessionError(null)
+    navigateToRoute({ name: 'home' })
+  }
+
   const isYinYangSelected = selectedGame?.slug === 'yinyang-samurai'
+  const isYinYangRoute = route.name === 'yinyang-intro' || route.name === 'yinyang-play'
+
+  useEffect(() => {
+    if (!isYinYangRoute) {
+      return
+    }
+
+    const yinYangGame = games.find((game) => game.slug === 'yinyang-samurai')
+    if (!yinYangGame) {
+      return
+    }
+
+    setSelectedGame((prev) => (prev?.id === yinYangGame.id ? prev : yinYangGame))
+    setSelectedGameCategory(classifyCategory(yinYangGame))
+    setScreen('play')
+  }, [games, isYinYangRoute])
 
   return (
     <>
@@ -733,9 +809,19 @@ function App() {
                 fullWidth
                 data-testid="start-game-session"
                 disabled={startingSession}
-                onClick={() => void onStartSession()}
+                onClick={() => {
+                  if (selectedGame?.slug === 'yinyang-samurai') {
+                    onOpenYinYangIntro()
+                    return
+                  }
+                  void onStartSession()
+                }}
               >
-                {startingSession ? 'Starting session...' : 'Start Game Session'}
+                {startingSession
+                  ? 'Starting session...'
+                  : selectedGame?.slug === 'yinyang-samurai'
+                    ? 'Open Intro'
+                    : 'Start Game Session'}
               </Button>
               <Button fullWidth variant="secondary" onClick={onBackToCatalog}>
                 Back to Catalog
@@ -746,11 +832,48 @@ function App() {
 
         {screen === 'play' ? (
           isYinYangSelected ? (
-            <section className="game-frame" data-testid="game-play-screen" aria-label="YinYang Samurai game screen">
-              <YinYangSamuraiGame onFinish={onFinishYinYangPlay} submitting={submittingScore} />
-              <small data-testid="session-started-state">Session active: {sessionId ?? '-'}</small>
-              {sessionError ? <small className="inline-error">{sessionError}</small> : null}
-            </section>
+            !isYinYangRoute ? null : (
+              <section className="yys-fullscreen" data-testid="yinyang-fullscreen-shell" aria-label="YinYang Samurai fullscreen">
+                <button
+                  type="button"
+                  className="yys-close-btn"
+                  aria-label="Close game"
+                  onClick={onCloseYinYangFullscreen}
+                >
+                  Close
+                </button>
+
+                <div className="yys-fullscreen-inner">
+                  <YinYangSamuraiGame
+                    onFinish={onFinishYinYangPlay}
+                    submitting={submittingScore}
+                    autoStart={route.name === 'yinyang-play'}
+                    showInstruction={route.name === 'yinyang-intro'}
+                    onStartAttempt={() => onStartSession({ forYinYang: true })}
+                  />
+
+                  <small data-testid="session-started-state">Session active: {sessionId ?? '-'}</small>
+                  {sessionError ? <small className="inline-error">{sessionError}</small> : null}
+
+                  {route.name === 'yinyang-play' && yinYangPlayResult ? (
+                    <div className="yys-result-popup" data-testid="yinyang-result-popup">
+                      <YinYangSamuraiResult
+                        result={yinYangPlayResult}
+                        submitResult={submitResult}
+                        shareLoading={shareLoading}
+                        onCreateShare={() => void onCreateShare()}
+                        onNativeShare={() => void onNativeShareYinYang()}
+                        onPlayAgain={onPlayAgain}
+                        onBackToGames={onCloseYinYangFullscreen}
+                        shareError={shareError}
+                        shareUrl={shareResult?.shareUrl ?? null}
+                        nativeShareStatus={nativeShareStatus}
+                      />
+                    </div>
+                  ) : null}
+                </div>
+              </section>
+            )
           ) : (
             <section className="game-frame" data-testid="game-play-screen" aria-label="Portrait game area preview">
               <div className="game-frame-inner">
@@ -775,40 +898,7 @@ function App() {
         ) : null}
 
         {screen === 'result' ? (
-          isYinYangSelected && yinYangPlayResult ? (
-            <>
-              <YinYangSamuraiResult
-                result={yinYangPlayResult}
-                submitResult={submitResult}
-                shareLoading={shareLoading}
-                onCreateShare={() => void onCreateShare()}
-                onNativeShare={() => void onNativeShareYinYang()}
-                onPlayAgain={onPlayAgain}
-                onBackToGames={onBackToCatalog}
-                shareError={shareError}
-                shareUrl={shareResult?.shareUrl ?? null}
-                nativeShareStatus={nativeShareStatus}
-              />
-
-              <section className="result-panel">
-                <h4>Leaderboard</h4>
-                {leaderboardLoading ? <p>Loading leaderboard...</p> : null}
-                {leaderboardError ? <p className="inline-error">{leaderboardError}</p> : null}
-                {!leaderboardLoading && !leaderboardError && leaderboard.length === 0 ? (
-                  <p>No leaderboard data yet.</p>
-                ) : null}
-                {!leaderboardLoading && !leaderboardError && leaderboard.length > 0 ? (
-                  <ol>
-                    {leaderboard.map((item) => (
-                      <li key={`${item.user_id}-${item.created_at}`}>
-                        {(item.display_name ?? 'Guest')} - {item.score}
-                      </li>
-                    ))}
-                  </ol>
-                ) : null}
-              </section>
-            </>
-          ) : (
+          isYinYangSelected && yinYangPlayResult ? null : (
             <section className="result-panel" data-testid="score-result-screen">
               <h3>{selectedGame?.title ?? 'Result'}</h3>
               <p data-testid="reaction-time-result">{reactionTimeMs ?? 0}ms</p>

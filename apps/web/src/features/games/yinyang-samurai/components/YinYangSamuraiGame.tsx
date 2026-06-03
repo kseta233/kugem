@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button, Card } from '@/shared/components'
 import { useYinYangSamuraiGame } from '@/features/games/yinyang-samurai/hooks/useYinYangSamuraiGame'
 import type { YinYangSamuraiResult } from '@/features/games/yinyang-samurai/types/yinyangSamurai.types'
@@ -6,13 +6,22 @@ import type { YinYangSamuraiResult } from '@/features/games/yinyang-samurai/type
 type YinYangSamuraiGameProps = {
   onFinish: (result: YinYangSamuraiResult) => void
   submitting?: boolean
+  autoStart?: boolean
+  showInstruction?: boolean
+  onStartAttempt?: () => Promise<boolean> | boolean
 }
 
 const formatDuration = (durationMs: number): string => {
   return `${(durationMs / 1000).toFixed(2)}s`
 }
 
-export const YinYangSamuraiGame = ({ onFinish, submitting = false }: YinYangSamuraiGameProps) => {
+export const YinYangSamuraiGame = ({
+  onFinish,
+  submitting = false,
+  autoStart = false,
+  showInstruction = true,
+  onStartAttempt,
+}: YinYangSamuraiGameProps) => {
   const {
     gameState,
     countdownTick,
@@ -27,6 +36,42 @@ export const YinYangSamuraiGame = ({ onFinish, submitting = false }: YinYangSamu
     onSwipeEnd,
     showConfetti,
   } = useYinYangSamuraiGame({ onFinish })
+  const [starting, setStarting] = useState(false)
+  const hasAutoStartedRef = useRef(false)
+
+  const handleStart = async () => {
+    if (starting) {
+      return
+    }
+
+    try {
+      setStarting(true)
+      if (onStartAttempt) {
+        const canStart = await onStartAttempt()
+        if (!canStart) {
+          return
+        }
+      }
+      startGame()
+    } finally {
+      setStarting(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!autoStart || gameState !== 'instruction' || hasAutoStartedRef.current) {
+      return
+    }
+
+    hasAutoStartedRef.current = true
+    void handleStart()
+  }, [autoStart, gameState])
+
+  useEffect(() => {
+    if (!autoStart) {
+      hasAutoStartedRef.current = false
+    }
+  }, [autoStart])
 
   const circleStyle = useMemo(() => {
     if (!throwConfig) {
@@ -62,7 +107,7 @@ export const YinYangSamuraiGame = ({ onFinish, submitting = false }: YinYangSamu
 
   return (
     <section className="yys-shell" data-testid="yinyang-samurai-play-screen">
-      {gameState === 'instruction' ? (
+      {gameState === 'instruction' && showInstruction ? (
         <Card className="yys-intro" data-testid="yys-instruction-screen">
           <div className="yys-intro__body">
             <div className="yys-intro__graphic slash-animation" aria-hidden="true">
@@ -79,8 +124,8 @@ export const YinYangSamuraiGame = ({ onFinish, submitting = false }: YinYangSamu
           </div>
 
           <div className="yys-intro__actions">
-            <Button fullWidth data-testid="yys-start-button" onClick={startGame}>
-              Start
+            <Button fullWidth data-testid="yys-start-button" disabled={starting} onClick={() => void handleStart()}>
+              {starting ? 'Starting...' : 'Start'}
             </Button>
           </div>
         </Card>

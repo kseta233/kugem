@@ -1139,6 +1139,57 @@ body {
   gap: var(--space-3);
 }
 
+.yys-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  background: #fcfbf9;
+  padding:
+    calc(var(--safe-top) + var(--space-4)) calc(var(--safe-right) + var(--space-4))
+    calc(var(--safe-bottom) + var(--space-4)) calc(var(--safe-left) + var(--space-4));
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+}
+
+.yys-fullscreen-inner {
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.yys-close-btn {
+  min-height: 44px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: var(--font-label-lg);
+  padding: 0 14px;
+  justify-self: start;
+}
+
+.yys-result-popup {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  background: color-mix(in srgb, var(--color-text), transparent 72%);
+  padding:
+    calc(var(--safe-top) + var(--space-5)) calc(var(--safe-right) + var(--space-4))
+    calc(var(--safe-bottom) + var(--space-5)) calc(var(--safe-left) + var(--space-4));
+  display: grid;
+  align-content: center;
+  justify-items: center;
+}
+
+.yys-result-popup .result-panel {
+  width: min(100%, 560px);
+  max-height: 84svh;
+  overflow-y: auto;
+}
+
 .yys-panel {
   display: grid;
   gap: var(--space-2);
