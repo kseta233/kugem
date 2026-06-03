@@ -389,6 +389,16 @@ function App() {
     setPlayDurationMs(null)
     setReactionTimeMs(null)
     setYinYangPlayResult(null)
+
+    if (game.slug === 'yinyang-samurai') {
+      setSessionError(null)
+      setShareError(null)
+      setNativeShareStatus(null)
+      setScreen('play')
+      navigateToRoute({ name: 'yinyang-intro' })
+      return
+    }
+
     setScreen('detail')
   }
 
