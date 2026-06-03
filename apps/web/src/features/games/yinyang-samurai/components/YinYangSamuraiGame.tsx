@@ -63,12 +63,26 @@ export const YinYangSamuraiGame = ({ onFinish, submitting = false }: YinYangSamu
   return (
     <section className="yys-shell" data-testid="yinyang-samurai-play-screen">
       {gameState === 'instruction' ? (
-        <Card title="YinYang Samurai" className="yys-panel yys-panel--instruction">
-          <p>Cut the object into a perfect half.</p>
-          <p>Swipe only once.</p>
-          <Button fullWidth data-testid="yys-start-button" onClick={startGame}>
-            Start
-          </Button>
+        <Card className="yys-intro" data-testid="yys-instruction-screen">
+          <div className="yys-intro__body">
+            <div className="yys-intro__graphic slash-animation" aria-hidden="true">
+              <div className="yys-intro__graphic-shadow" />
+              <div className="yys-intro__graphic-dot" />
+              <div className="yys-intro__graphic-yinyang" />
+            </div>
+
+            <div className="yys-intro__copy">
+              <h2>The Yin Yang Swordsman</h2>
+              <h3>Cut the object into a perfect half.</h3>
+              <p>Draw one slash through the object. The smaller the gap, the better your balance.</p>
+            </div>
+          </div>
+
+          <div className="yys-intro__actions">
+            <Button fullWidth data-testid="yys-start-button" onClick={startGame}>
+              Start
+            </Button>
+          </div>
         </Card>
       ) : null}
 
