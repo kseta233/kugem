@@ -231,6 +231,7 @@ function App() {
   const [sessionError, setSessionError] = useState<string | null>(null)
   const [reactionTimeMs, setReactionTimeMs] = useState<number | null>(null)
   const [yinYangPlayResult, setYinYangPlayResult] = useState<YinYangSamuraiPlayResult | null>(null)
+  const [isYinYangResultOpen, setIsYinYangResultOpen] = useState(false)
   const [homeCategory, setHomeCategory] = useState<HomeCategory>('All')
 
   const onSaveWelcomeDisplayName = useCallback(
@@ -389,6 +390,7 @@ function App() {
     setPlayDurationMs(null)
     setReactionTimeMs(null)
     setYinYangPlayResult(null)
+    setIsYinYangResultOpen(false)
 
     if (game.slug === 'yinyang-samurai') {
       setSessionError(null)
@@ -421,6 +423,7 @@ function App() {
       setCurrentSession(session)
       setSessionId(session.sessionId)
       setYinYangPlayResult(null)
+      setIsYinYangResultOpen(false)
       setScreen('play')
 
        if (forYinYang) {
@@ -461,6 +464,7 @@ function App() {
       setSubmitResult(result)
       setPlayDurationMs(ms)
       setYinYangPlayResult(customResult ?? null)
+      setIsYinYangResultOpen(isYinYang)
 
       if (currentSession.gameId) {
         void loadLeaderboard(currentSession.gameId)
@@ -494,6 +498,7 @@ function App() {
     setSubmitResult(null)
     setSubmittedScore(null)
     setYinYangPlayResult(null)
+    setIsYinYangResultOpen(false)
     void onStartSession({ forYinYang: isYinYangSelected })
   }
 
@@ -616,6 +621,7 @@ function App() {
     setShareError(null)
     setNativeShareStatus(null)
     setYinYangPlayResult(null)
+    setIsYinYangResultOpen(false)
     setSubmitResult(null)
     setShareResult(null)
     setScreen('play')
@@ -625,7 +631,12 @@ function App() {
   const onCloseYinYangFullscreen = () => {
     setScreen('detail')
     setSessionError(null)
+    setIsYinYangResultOpen(false)
     navigateToRoute({ name: 'home' })
+  }
+
+  const onCloseYinYangPopup = () => {
+    setIsYinYangResultOpen(false)
   }
 
   const isYinYangSelected = selectedGame?.slug === 'yinyang-samurai'
@@ -865,19 +876,27 @@ function App() {
                   <small data-testid="session-started-state">Session active: {sessionId ?? '-'}</small>
                   {sessionError ? <small className="inline-error">{sessionError}</small> : null}
 
-                  {route.name === 'yinyang-play' && yinYangPlayResult ? (
+                  {route.name === 'yinyang-play' && yinYangPlayResult && isYinYangResultOpen ? (
                     <div className="yys-result-popup" data-testid="yinyang-result-popup">
+                      <div className="yys-result-popup__confetti" aria-hidden="true">
+                        <span />
+                        <span />
+                        <span />
+                        <span />
+                        <span />
+                        <span />
+                      </div>
                       <YinYangSamuraiResult
                         result={yinYangPlayResult}
                         submitResult={submitResult}
                         shareLoading={shareLoading}
-                        onCreateShare={() => void onCreateShare()}
                         onNativeShare={() => void onNativeShareYinYang()}
                         onPlayAgain={onPlayAgain}
-                        onBackToGames={onCloseYinYangFullscreen}
+                        onClosePopup={onCloseYinYangPopup}
                         shareError={shareError}
                         shareUrl={shareResult?.shareUrl ?? null}
                         nativeShareStatus={nativeShareStatus}
+                        leaderboard={leaderboard}
                       />
                     </div>
                   ) : null}

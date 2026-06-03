@@ -1,70 +1,102 @@
-import { Button, CoinBadge } from '@/shared/components'
+import { Button } from '@/shared/components'
 import type { SubmitScoreResult } from '@/features/sessions/sessions.service'
 import type { YinYangSamuraiResult as YinYangSamuraiPlayResult } from '@/features/games/yinyang-samurai/types/yinyangSamurai.types'
+import type { LeaderboardItem } from '@/types/leaderboard'
 
 type YinYangSamuraiResultProps = {
   result: YinYangSamuraiPlayResult
   submitResult: SubmitScoreResult | null
   shareLoading: boolean
-  onCreateShare: () => void
   onNativeShare: () => void
   onPlayAgain: () => void
-  onBackToGames: () => void
+  onClosePopup: () => void
   shareError: string | null
   shareUrl: string | null
   nativeShareStatus: string | null
+  leaderboard: LeaderboardItem[]
+}
+
+const toLeaderboardAccuracy = (score: number): string => {
+  return `${(score / 10).toFixed(1)}%`
+}
+
+const getHeadline = (result: YinYangSamuraiPlayResult): string => {
+  if (result.isMissed) {
+    return 'Missed cut'
+  }
+
+  if (result.accuracy >= 99) {
+    return 'Perfect balance!'
+  }
+
+  return result.grade
 }
 
 export const YinYangSamuraiResult = ({
   result,
   submitResult,
   shareLoading,
-  onCreateShare,
   onNativeShare,
   onPlayAgain,
-  onBackToGames,
+  onClosePopup,
   shareError,
   shareUrl,
   nativeShareStatus,
+  leaderboard,
 }: YinYangSamuraiResultProps) => {
-  return (
-    <section className="result-panel" data-testid="yinyang-samurai-result-screen">
-      <h3>YinYang Samurai</h3>
-      <p>{result.isMissed ? 'Missed Cut' : `${result.accuracy.toFixed(2)}%`}</p>
-      <p>{result.grade}</p>
-      <p>Time: {(result.durationMs / 1000).toFixed(2)}s</p>
-      <p>Score: {result.score}</p>
-      <p>Validation: {submitResult?.validationStatus ?? '-'}</p>
-      <CoinBadge value={submitResult?.coinReward ?? 0} />
-      {typeof submitResult?.rankHint === 'number' ? <p>Rank hint: #{submitResult.rankHint}</p> : null}
-      {typeof submitResult?.totalCoin === 'number' ? <p>Total coin: {submitResult.totalCoin}</p> : null}
+  const topPlayers = leaderboard.slice(0, 3)
 
-      <section className="detail-actions">
-        <Button fullWidth variant="secondary" disabled={shareLoading} onClick={onCreateShare}>
-          {shareLoading ? 'Creating Share...' : 'Create Share Link'}
-        </Button>
-        <Button fullWidth onClick={onNativeShare}>
-          Share Result
-        </Button>
+  return (
+    <section className="yys-result-card" data-testid="yinyang-samurai-result-screen">
+      <button type="button" className="yys-result-card__close" onClick={onClosePopup}>
+        Close
+      </button>
+
+      <h3>{getHeadline(result)}</h3>
+
+      <div className="yys-result-card__score">
+        <strong>{result.isMissed ? '0.0%' : `${result.accuracy.toFixed(1)}%`}</strong>
+        <span>Time: {(result.durationMs / 1000).toFixed(2)}s</span>
+      </div>
+
+      <section className="yys-result-card__leaders">
+        <h4>Top 3 Players</h4>
+        <div className="yys-result-card__leader-list">
+          {topPlayers.length === 0 ? (
+            <div className="yys-result-card__leader-row is-empty">
+              <span>No leaderboard data yet</span>
+            </div>
+          ) : (
+            topPlayers.map((item, index) => (
+              <div className="yys-result-card__leader-row" key={`${item.user_id}-${item.created_at}`}>
+                <div className="yys-result-card__leader-meta">
+                  <span className="yys-result-card__leader-rank">{index + 1}</span>
+                  <span>{item.display_name ?? 'Guest'}</span>
+                </div>
+                <span className="yys-result-card__leader-score">{toLeaderboardAccuracy(item.score)}</span>
+              </div>
+            ))
+          )}
+        </div>
       </section>
 
+      {submitResult?.validationStatus ? (
+        <p className="yys-result-card__meta">Validation: {submitResult.validationStatus}</p>
+      ) : null}
       {shareError ? <p className="inline-error">{shareError}</p> : null}
-      {nativeShareStatus ? <p>{nativeShareStatus}</p> : null}
+      {nativeShareStatus ? <p className="yys-result-card__meta">{nativeShareStatus}</p> : null}
       {shareUrl ? (
-        <p>
-          Share URL:{' '}
-          <a href={shareUrl} target="_blank" rel="noreferrer">
-            {shareUrl}
-          </a>
+        <p className="yys-result-card__meta">
+          Share URL: <a href={shareUrl} target="_blank" rel="noreferrer">{shareUrl}</a>
         </p>
       ) : null}
 
-      <div className="detail-actions">
+      <div className="yys-result-card__actions">
+        <Button fullWidth variant="secondary" disabled={shareLoading} onClick={onNativeShare}>
+          {shareLoading ? 'Preparing Share...' : 'Share'}
+        </Button>
         <Button fullWidth data-testid="play-again-action" onClick={onPlayAgain}>
           Try Again
-        </Button>
-        <Button fullWidth variant="secondary" onClick={onBackToGames}>
-          Back to Games
         </Button>
       </div>
     </section>

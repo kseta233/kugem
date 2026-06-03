@@ -1,11 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
-import { buildCutResult, buildMissedResult } from '@/features/games/yinyang-samurai/engine/scoring'
-import { doesLineIntersectCircle, isSwipeLargeEnough } from '@/features/games/yinyang-samurai/engine/cutDetection'
-import {
-  createThrowConfig,
-  getThrowY,
-  isThrowFinished,
-} from '@/features/games/yinyang-samurai/engine/throwPhysics'
+import { isSwipeLargeEnough } from '@/features/games/yinyang-samurai/engine/cutDetection'
+import { createThrowConfig } from '@/features/games/yinyang-samurai/engine/throwPhysics'
+import { YinYangSamuraiScene } from '@/features/games/yinyang-samurai/scene/YinYangSamuraiScene'
+import { createSlashSfxPlayer } from '@/features/games/yinyang-samurai/sfx/slashSfx'
 import type {
   CountdownTick,
   CutLine,
@@ -13,13 +10,6 @@ import type {
   ThrowConfig,
   YinYangSamuraiResult,
 } from '@/features/games/yinyang-samurai/types/yinyangSamurai.types'
-
-const COUNTDOWN_SEQUENCE: Array<{ label: CountdownTick; durationMs: number }> = [
-  { label: 3, durationMs: 700 },
-  { label: 2, durationMs: 700 },
-  { label: 1, durationMs: 700 },
-  { label: 'GO', durationMs: 300 },
-]
 
 type Point = {
   x: number
@@ -57,11 +47,12 @@ export const useYinYangSamuraiGame = ({ onFinish }: UseYinYangSamuraiGameInput):
   const [lastResult, setLastResult] = useState<YinYangSamuraiResult | null>(null)
 
   const containerRef = useRef<HTMLDivElement>(null)
+  const sceneRef = useRef<YinYangSamuraiScene | null>(null)
   const countdownTimeoutRef = useRef<number | null>(null)
   const frameRef = useRef<number | null>(null)
-  const timerStartRef = useRef<number>(0)
   const swipeStartRef = useRef<Point | null>(null)
   const hasCutRef = useRef(false)
+  const playSlashRef = useRef<() => void>(() => {})
 
   const clearCountdownTimeout = () => {
     if (countdownTimeoutRef.current !== null) {
@@ -78,6 +69,7 @@ export const useYinYangSamuraiGame = ({ onFinish }: UseYinYangSamuraiGameInput):
   }
 
   const resetRound = useCallback(() => {
+    sceneRef.current?.resetRound()
     clearCountdownTimeout()
     clearFrame()
     hasCutRef.current = false
@@ -87,6 +79,7 @@ export const useYinYangSamuraiGame = ({ onFinish }: UseYinYangSamuraiGameInput):
     setLastResult(null)
     setThrowConfig(null)
     setObjectY(0)
+    setGameState(sceneRef.current?.getState() ?? 'instruction')
   }, [])
 
   const finishGame = useCallback(
@@ -94,7 +87,7 @@ export const useYinYangSamuraiGame = ({ onFinish }: UseYinYangSamuraiGameInput):
       clearCountdownTimeout()
       clearFrame()
       setLastResult(result)
-      setGameState('result')
+      setGameState(sceneRef.current?.getState() ?? 'result')
       onFinish(result)
     },
     [onFinish],
@@ -103,7 +96,7 @@ export const useYinYangSamuraiGame = ({ onFinish }: UseYinYangSamuraiGameInput):
   const startPlaying = useCallback(() => {
     const host = containerRef.current
     if (!host) {
-      finishGame(buildMissedResult(0))
+      finishGame(sceneRef.current?.endWithMissed(0) ?? { accuracy: 0, score: 0, durationMs: 0, grade: 'Missed Cut', isMissed: true })
       return
     }
 
@@ -112,20 +105,21 @@ export const useYinYangSamuraiGame = ({ onFinish }: UseYinYangSamuraiGameInput):
 
     hasCutRef.current = false
     swipeStartRef.current = null
-    timerStartRef.current = performance.now()
+    sceneRef.current?.startPlaying(config, performance.now())
 
     setThrowConfig(config)
     setObjectY(config.startY)
     setCutLine(null)
     setTimerMs(0)
-    setGameState('playing')
+    setGameState(sceneRef.current?.getState() ?? 'playing')
   }, [finishGame])
 
   const startGame = useCallback(() => {
     resetRound()
+    const firstStep = sceneRef.current?.startCountdown()
     setCountdownIndex(0)
-    setCountdownTick(COUNTDOWN_SEQUENCE[0].label)
-    setGameState('countdown')
+    setCountdownTick(firstStep?.label ?? null)
+    setGameState(sceneRef.current?.getState() ?? 'countdown')
   }, [resetRound])
 
   const tryAgain = useCallback(() => {
@@ -137,7 +131,12 @@ export const useYinYangSamuraiGame = ({ onFinish }: UseYinYangSamuraiGameInput):
       return
     }
 
-    const current = COUNTDOWN_SEQUENCE[countdownIndex]
+    const scene = sceneRef.current
+    if (!scene) {
+      return
+    }
+
+    const current = scene.getCountdownStep()
     if (!current) {
       setCountdownTick(null)
       startPlaying()
@@ -146,7 +145,14 @@ export const useYinYangSamuraiGame = ({ onFinish }: UseYinYangSamuraiGameInput):
 
     setCountdownTick(current.label)
     countdownTimeoutRef.current = window.setTimeout(() => {
-      setCountdownIndex((value) => value + 1)
+      const countdownState = scene.advanceCountdown()
+      if (countdownState.done) {
+        setCountdownTick(null)
+        startPlaying()
+      } else {
+        setCountdownIndex((value) => value + 1)
+        setCountdownTick(countdownState.next?.label ?? null)
+      }
     }, current.durationMs)
 
     return () => {
@@ -155,20 +161,26 @@ export const useYinYangSamuraiGame = ({ onFinish }: UseYinYangSamuraiGameInput):
   }, [countdownIndex, gameState, startPlaying])
 
   useEffect(() => {
-    if (gameState !== 'playing' || !throwConfig) {
+    if (gameState !== 'playing') {
+      return
+    }
+
+    const scene = sceneRef.current
+    if (!scene) {
       return
     }
 
     const animate = () => {
-      const elapsed = performance.now() - timerStartRef.current
-      const roundedElapsed = Math.max(0, Math.round(elapsed))
-      setTimerMs(roundedElapsed)
+      const frame = scene.getPlayingFrame(performance.now())
+      if (!frame) {
+        return
+      }
 
-      const nextY = getThrowY(roundedElapsed, throwConfig)
-      setObjectY(nextY)
+      setTimerMs(frame.elapsedMs)
+      setObjectY(frame.y)
 
-      if (isThrowFinished(roundedElapsed, throwConfig)) {
-        finishGame(buildMissedResult(roundedElapsed))
+      if (frame.hasFinishedThrow) {
+        finishGame(scene.endWithMissed(frame.elapsedMs))
         return
       }
 
@@ -180,7 +192,7 @@ export const useYinYangSamuraiGame = ({ onFinish }: UseYinYangSamuraiGameInput):
     return () => {
       clearFrame()
     }
-  }, [finishGame, gameState, throwConfig])
+  }, [finishGame, gameState])
 
   const toLocalPoint = useCallback((clientX: number, clientY: number): Point | null => {
     const host = containerRef.current
@@ -234,34 +246,38 @@ export const useYinYangSamuraiGame = ({ onFinish }: UseYinYangSamuraiGameInput):
       }
 
       setCutLine(line)
+      playSlashRef.current()
 
-      const elapsed = Math.max(0, Math.round(performance.now() - timerStartRef.current))
+      const scene = sceneRef.current
+      if (!scene) {
+        return
+      }
+
+      const elapsed = scene.getElapsedMs(performance.now())
       if (!isSwipeLargeEnough(line)) {
-        finishGame(buildMissedResult(elapsed))
+        finishGame(scene.endWithMissed(elapsed))
         return
       }
 
-      const circle = {
-        x: throwConfig.centerX,
-        y: objectY,
-        radius: throwConfig.radius,
-      }
-
-      const intersects = doesLineIntersectCircle(line, circle)
-      if (!intersects) {
-        finishGame(buildMissedResult(elapsed))
-        return
-      }
-
-      finishGame(buildCutResult(line, circle, elapsed))
+      finishGame(scene.resolveCut(line, objectY, elapsed))
     },
     [finishGame, gameState, objectY, throwConfig, toLocalPoint],
   )
 
   useEffect(() => {
+    const scene = new YinYangSamuraiScene()
+    sceneRef.current = scene
+    setGameState(scene.getState())
+
+    const slashSfx = createSlashSfxPlayer()
+    playSlashRef.current = slashSfx.play
+
     return () => {
       clearCountdownTimeout()
       clearFrame()
+      playSlashRef.current = () => {}
+      slashSfx.dispose()
+      sceneRef.current = null
     }
   }, [])
 

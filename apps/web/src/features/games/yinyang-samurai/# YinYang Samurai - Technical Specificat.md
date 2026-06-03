@@ -862,7 +862,7 @@ Checklist ini dipakai untuk tracking implementasi dari TSD ke kode produksi.
 
 ## 21.4 Phaser Scene
 
-- [ ] Implement `scene/YinYangSamuraiScene.ts` dengan state: instruction -> countdown -> playing -> result.
+- [x] Implement `scene/YinYangSamuraiScene.ts` dengan state: instruction -> countdown -> playing -> result.
 - [x] Render object lingkaran/yin-yang dan animasi lempar dari bawah layar.
 - [x] Implement countdown 3-2-1-GO dengan timing sesuai spesifikasi.
 - [x] Implement swipe input (touch + mouse) dan batasi hanya satu cut per ronde.
@@ -871,7 +871,7 @@ Checklist ini dipakai untuk tracking implementasi dari TSD ke kode produksi.
 
 ## 21.5 React Bridge and UI
 
-- [ ] Implement `hooks/useYinYangSamuraiGame.ts` untuk lifecycle Phaser mount/unmount.
+- [x] Implement `hooks/useYinYangSamuraiGame.ts` untuk lifecycle Phaser mount/unmount.
 - [x] Implement `components/YinYangSamuraiGame.tsx` sebagai wrapper React + callback `onFinish`.
 - [x] Tampilkan timer realtime dengan 2 decimal saat gameplay.
 - [x] Implement result popup dengan accuracy, duration, grade, dan tombol Try Again.
@@ -885,14 +885,14 @@ Checklist ini dipakai untuk tracking implementasi dari TSD ke kode produksi.
 
 ## 21.7 Quality and Acceptance
 
-- [ ] Validasi layout portrait-first dan mobile-first (touch target, safe area, no hover-only action).
-- [ ] Validasi performa target 60 FPS pada device representative.
-- [ ] Uji acceptance criteria gameplay (countdown, throw, swipe, one-cut, timer, result).
-- [ ] Uji acceptance criteria result (accuracy benar, time benar, share jalan, confetti trigger).
-- [ ] Uji skenario edge case: swipe miss, swipe terlalu cepat, cut dekat tepi object.
+- [x] Validasi layout portrait-first dan mobile-first (touch target, safe area, no hover-only action).
+- [x] Validasi performa target 60 FPS pada device representative.
+- [x] Uji acceptance criteria gameplay (countdown, throw, swipe, one-cut, timer, result).
+- [x] Uji acceptance criteria result (accuracy benar, time benar, share jalan, confetti trigger).
+- [x] Uji skenario edge case: swipe miss, swipe terlalu cepat, cut dekat tepi object.
 
 ## 21.8 Nice-to-Have (After MVP)
 
-- [ ] Tambah SFX countdown/slash/result.
+- [ ] Tambah SFX countdown/slash/result. (slash SFX sudah diimplementasi saat swipe selesai)
 - [ ] Tambah ambient music opsional dengan kontrol mute.
 
