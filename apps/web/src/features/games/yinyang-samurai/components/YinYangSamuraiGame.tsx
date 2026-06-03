@@ -15,6 +15,12 @@ const formatDuration = (durationMs: number): string => {
   return `${(durationMs / 1000).toFixed(2)}s`
 }
 
+const introSteps = [
+  'Wait for the object to fly into the arena.',
+  'Draw a single slash to split it as evenly as possible.',
+  'The closer your cut is to center, the higher your score.',
+]
+
 export const YinYangSamuraiGame = ({
   onFinish,
   submitting = false,
@@ -109,24 +115,38 @@ export const YinYangSamuraiGame = ({
     <section className="yys-shell" data-testid="yinyang-samurai-play-screen">
       {gameState === 'instruction' && showInstruction ? (
         <Card className="yys-intro" data-testid="yys-instruction-screen">
-          <div className="yys-intro__body">
-            <div className="yys-intro__graphic slash-animation" aria-hidden="true">
-              <div className="yys-intro__graphic-shadow" />
-              <div className="yys-intro__graphic-dot" />
+          <div className="yys-intro__hero slash-animation" aria-hidden="true">
+            <div className="yys-intro__hero-back">←</div>
+            <div className="yys-intro__hero-badge">$ 50 Coins</div>
+            <div className="yys-intro__hero-icon">
               <div className="yys-intro__graphic-yinyang" />
-            </div>
-
-            <div className="yys-intro__copy">
-              <h2>The Yin Yang Swordsman</h2>
-              <h3>Cut the object into a perfect half.</h3>
-              <p>Draw one slash through the object. The smaller the gap, the better your balance.</p>
             </div>
           </div>
 
+          <div className="yys-intro__copy">
+            <h2>The Yin Yang Swordsman</h2>
+            <p>Master the art of the perfect cut.</p>
+          </div>
+
+          <section className="yys-intro__rules" aria-label="Simple rules">
+            <h3>Simple Rules</h3>
+            <ol>
+              {introSteps.map((step, index) => (
+                <li key={step}>
+                  <span>{index + 1}</span>
+                  <p>{step}</p>
+                </li>
+              ))}
+            </ol>
+          </section>
+
           <div className="yys-intro__actions">
             <Button fullWidth data-testid="yys-start-button" disabled={starting} onClick={() => void handleStart()}>
-              {starting ? 'Starting...' : 'Start'}
+              {starting ? 'Starting...' : 'Start Game'}
             </Button>
+            <div className="yys-intro__actions-icon" aria-hidden="true">
+              ►
+            </div>
           </div>
         </Card>
       ) : null}

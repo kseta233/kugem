@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } fro
 import { isSwipeLargeEnough } from '@/features/games/yinyang-samurai/engine/cutDetection'
 import { createThrowConfig } from '@/features/games/yinyang-samurai/engine/throwPhysics'
 import { YinYangSamuraiScene } from '@/features/games/yinyang-samurai/scene/YinYangSamuraiScene'
+import { createGameSfxPlayer } from '@/features/games/yinyang-samurai/sfx/gameSfx'
 import { createSlashSfxPlayer } from '@/features/games/yinyang-samurai/sfx/slashSfx'
 import type {
   CountdownTick,
@@ -52,6 +53,8 @@ export const useYinYangSamuraiGame = ({ onFinish }: UseYinYangSamuraiGameInput):
   const frameRef = useRef<number | null>(null)
   const swipeStartRef = useRef<Point | null>(null)
   const hasCutRef = useRef(false)
+  const playCountdownRef = useRef<(tick: CountdownTick) => void>(() => {})
+  const playResultPopRef = useRef<(result: YinYangSamuraiResult) => void>(() => {})
   const playSlashRef = useRef<() => void>(() => {})
 
   const clearCountdownTimeout = () => {
@@ -88,6 +91,7 @@ export const useYinYangSamuraiGame = ({ onFinish }: UseYinYangSamuraiGameInput):
       clearFrame()
       setLastResult(result)
       setGameState(sceneRef.current?.getState() ?? 'result')
+      playResultPopRef.current(result)
       onFinish(result)
     },
     [onFinish],
@@ -144,6 +148,7 @@ export const useYinYangSamuraiGame = ({ onFinish }: UseYinYangSamuraiGameInput):
     }
 
     setCountdownTick(current.label)
+    playCountdownRef.current(current.label)
     countdownTimeoutRef.current = window.setTimeout(() => {
       const countdownState = scene.advanceCountdown()
       if (countdownState.done) {
@@ -269,13 +274,20 @@ export const useYinYangSamuraiGame = ({ onFinish }: UseYinYangSamuraiGameInput):
     sceneRef.current = scene
     setGameState(scene.getState())
 
+    const gameSfx = createGameSfxPlayer()
+    playCountdownRef.current = gameSfx.playCountdownTick
+    playResultPopRef.current = gameSfx.playResultPop
+
     const slashSfx = createSlashSfxPlayer()
     playSlashRef.current = slashSfx.play
 
     return () => {
       clearCountdownTimeout()
       clearFrame()
+      playCountdownRef.current = () => {}
+      playResultPopRef.current = () => {}
       playSlashRef.current = () => {}
+      gameSfx.dispose()
       slashSfx.dispose()
       sceneRef.current = null
     }

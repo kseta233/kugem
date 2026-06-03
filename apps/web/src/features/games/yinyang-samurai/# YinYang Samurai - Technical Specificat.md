@@ -893,6 +893,6 @@ Checklist ini dipakai untuk tracking implementasi dari TSD ke kode produksi.
 
 ## 21.8 Nice-to-Have (After MVP)
 
-- [ ] Tambah SFX countdown/slash/result. (slash SFX sudah diimplementasi saat swipe selesai)
+- [x] Tambah SFX countdown/slash/result.
 - [ ] Tambah ambient music opsional dengan kontrol mute.
 
