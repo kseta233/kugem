@@ -7,10 +7,12 @@ type YinYangSamuraiResultProps = {
   submitResult: SubmitScoreResult | null
   shareLoading: boolean
   onCreateShare: () => void
+  onNativeShare: () => void
   onPlayAgain: () => void
   onBackToGames: () => void
   shareError: string | null
   shareUrl: string | null
+  nativeShareStatus: string | null
 }
 
 export const YinYangSamuraiResult = ({
@@ -18,10 +20,12 @@ export const YinYangSamuraiResult = ({
   submitResult,
   shareLoading,
   onCreateShare,
+  onNativeShare,
   onPlayAgain,
   onBackToGames,
   shareError,
   shareUrl,
+  nativeShareStatus,
 }: YinYangSamuraiResultProps) => {
   return (
     <section className="result-panel" data-testid="yinyang-samurai-result-screen">
@@ -39,9 +43,13 @@ export const YinYangSamuraiResult = ({
         <Button fullWidth variant="secondary" disabled={shareLoading} onClick={onCreateShare}>
           {shareLoading ? 'Creating Share...' : 'Create Share Link'}
         </Button>
+        <Button fullWidth onClick={onNativeShare}>
+          Share Result
+        </Button>
       </section>
 
       {shareError ? <p className="inline-error">{shareError}</p> : null}
+      {nativeShareStatus ? <p>{nativeShareStatus}</p> : null}
       {shareUrl ? (
         <p>
           Share URL:{' '}

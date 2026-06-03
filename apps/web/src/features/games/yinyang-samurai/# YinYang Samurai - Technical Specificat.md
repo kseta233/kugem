@@ -879,8 +879,8 @@ Checklist ini dipakai untuk tracking implementasi dari TSD ke kode produksi.
 
 ## 21.6 Share and Retry
 
-- [ ] Implement tombol Share menggunakan Web Share API.
-- [ ] Tambahkan fallback copy-to-clipboard saat Web Share tidak tersedia.
+- [x] Implement tombol Share menggunakan Web Share API.
+- [x] Tambahkan fallback copy-to-clipboard saat Web Share tidak tersedia.
 - [x] Implement flow Try Again untuk reset state dan mulai ronde baru.
 
 ## 21.7 Quality and Acceptance

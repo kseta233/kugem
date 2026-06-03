@@ -193,6 +193,7 @@ function App() {
   const [shareResult, setShareResult] = useState<CreateSharePostResult | null>(null)
   const [shareError, setShareError] = useState<string | null>(null)
   const [shareLoading, setShareLoading] = useState(false)
+  const [nativeShareStatus, setNativeShareStatus] = useState<string | null>(null)
   const [publicSharePost, setPublicSharePost] = useState<PublicSharePost | null>(null)
   const [publicShareLoading, setPublicShareLoading] = useState(false)
   const [publicShareError, setPublicShareError] = useState<string | null>(null)
@@ -351,6 +352,7 @@ function App() {
     setSelectedGameCategory(classifyCategory(game))
     setShareResult(null)
     setShareError(null)
+    setNativeShareStatus(null)
     setSubmitResult(null)
     setSubmittedScore(null)
     setLeaderboard([])
@@ -470,6 +472,78 @@ function App() {
       setShareLoading(false)
     }
   }
+
+  const ensureShareLink = useCallback(async (): Promise<string | null> => {
+    if (shareResult?.shareUrl) {
+      return shareResult.shareUrl
+    }
+
+    if (!submitResult?.scoreId || !selectedGame) {
+      return null
+    }
+
+    try {
+      setShareLoading(true)
+      setShareError(null)
+
+      const share = await createSharePost({
+        scoreId: submitResult.scoreId,
+        caption: yinYangPlayResult
+          ? `I scored ${yinYangPlayResult.accuracy.toFixed(2)}% in ${selectedGame.title}! Can you cut better than me?`
+          : `I scored ${submittedScore ?? 0} in ${selectedGame.title}`,
+      })
+
+      setShareResult(share)
+      return share.shareUrl
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to create share link'
+      setShareError(message)
+      return null
+    } finally {
+      setShareLoading(false)
+    }
+  }, [selectedGame, shareResult?.shareUrl, submitResult?.scoreId, submittedScore, yinYangPlayResult])
+
+  const onNativeShareYinYang = useCallback(async () => {
+    if (!selectedGame || !yinYangPlayResult) {
+      return
+    }
+
+    setNativeShareStatus(null)
+    const shareUrl = await ensureShareLink()
+    const text = `I scored ${yinYangPlayResult.accuracy.toFixed(2)}% in ${selectedGame.title}! Can you cut better than me?`
+
+    try {
+      if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+        await navigator.share({
+          title: `${selectedGame.title} Result`,
+          text,
+          url: shareUrl ?? undefined,
+        })
+        setNativeShareStatus('Shared successfully.')
+        return
+      }
+    } catch (err) {
+      const isAbortError = err instanceof DOMException && err.name === 'AbortError'
+      if (isAbortError) {
+        setNativeShareStatus('Share cancelled.')
+        return
+      }
+    }
+
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      try {
+        const clipboardText = shareUrl ? `${text}\n${shareUrl}` : text
+        await navigator.clipboard.writeText(clipboardText)
+        setNativeShareStatus('Share text copied to clipboard.')
+      } catch {
+        setNativeShareStatus('Unable to share automatically. Copy the share URL manually.')
+      }
+      return
+    }
+
+    setNativeShareStatus('Sharing is not supported in this browser.')
+  }, [ensureShareLink, selectedGame, yinYangPlayResult])
 
   const visibleGames = games.filter((game) => {
     const category = classifyCategory(game)
@@ -708,10 +782,12 @@ function App() {
                 submitResult={submitResult}
                 shareLoading={shareLoading}
                 onCreateShare={() => void onCreateShare()}
+                onNativeShare={() => void onNativeShareYinYang()}
                 onPlayAgain={onPlayAgain}
                 onBackToGames={onBackToCatalog}
                 shareError={shareError}
                 shareUrl={shareResult?.shareUrl ?? null}
+                nativeShareStatus={nativeShareStatus}
               />
 
               <section className="result-panel">
