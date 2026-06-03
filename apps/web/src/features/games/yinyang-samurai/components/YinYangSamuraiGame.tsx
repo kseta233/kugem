@@ -72,13 +72,7 @@ export const YinYangSamuraiGame = ({ onFinish, submitting = false }: YinYangSamu
         </Card>
       ) : null}
 
-      {gameState === 'countdown' ? (
-        <section className="yys-countdown" data-testid="yys-countdown">
-          <p>{countdownTick}</p>
-        </section>
-      ) : null}
-
-      {(gameState === 'playing' || gameState === 'result') ? (
+      {(gameState === 'countdown' || gameState === 'playing' || gameState === 'result') ? (
         <section
           className="yys-arena"
           ref={containerRef}
@@ -91,6 +85,12 @@ export const YinYangSamuraiGame = ({ onFinish, submitting = false }: YinYangSamu
           <div className="yys-orb" style={circleStyle} />
           <div className="yys-cut-line" style={cutLineStyle} />
 
+          {gameState === 'countdown' ? (
+            <section className="yys-countdown-overlay" data-testid="yys-countdown">
+              <p>{countdownTick}</p>
+            </section>
+          ) : null}
+
           {showConfetti ? (
             <div className="yys-confetti" aria-hidden="true">
               <span />
@@ -100,9 +100,11 @@ export const YinYangSamuraiGame = ({ onFinish, submitting = false }: YinYangSamu
             </div>
           ) : null}
 
-          <footer className="yys-timer" data-testid="yys-live-timer">
-            {formatDuration(timerMs)}
-          </footer>
+          {gameState !== 'countdown' ? (
+            <footer className="yys-timer" data-testid="yys-live-timer">
+              {formatDuration(timerMs)}
+            </footer>
+          ) : null}
 
           {gameState === 'result' && lastResult ? (
             <aside className="yys-result-toast" data-testid="yys-local-result">

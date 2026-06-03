@@ -1163,6 +1163,23 @@ body {
   font-size: clamp(56px, 18vw, 110px);
 }
 
+.yys-countdown-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--color-brand), transparent 65%);
+}
+
+.yys-countdown-overlay p {
+  margin: 0;
+  font: var(--font-display-lg);
+  color: var(--color-brand-on);
+  font-size: clamp(56px, 18vw, 110px);
+  text-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
 .yys-arena {
   position: relative;
   width: 100%;
