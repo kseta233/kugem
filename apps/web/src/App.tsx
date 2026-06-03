@@ -10,6 +10,11 @@ import {
 } from '@/features/sessions/sessions.service'
 import { createSharePost, type CreateSharePostResult } from '@/features/share/share.service'
 import { getPublicSharePostBySlug, type PublicSharePost } from '@/features/share/share.service'
+import {
+  YinYangSamuraiGame,
+  YinYangSamuraiResult,
+  type YinYangSamuraiPlayResult,
+} from '@/features/games/yinyang-samurai'
 import { Button, Card, CoinBadge, HomeCategoryChips, HomeGameCard, Page } from '@/shared/components'
 import type { HomeCategory } from '@/shared/components'
 import { ProfileScreen } from '@/screens/ProfileScreen'
@@ -195,6 +200,7 @@ function App() {
   const [startingSession, setStartingSession] = useState(false)
   const [sessionError, setSessionError] = useState<string | null>(null)
   const [reactionTimeMs, setReactionTimeMs] = useState<number | null>(null)
+  const [yinYangPlayResult, setYinYangPlayResult] = useState<YinYangSamuraiPlayResult | null>(null)
   const [homeCategory, setHomeCategory] = useState<HomeCategory>('All')
 
   const onSaveWelcomeDisplayName = useCallback(
@@ -351,6 +357,7 @@ function App() {
     setLeaderboardError(null)
     setPlayDurationMs(null)
     setReactionTimeMs(null)
+    setYinYangPlayResult(null)
     setScreen('detail')
   }
 
@@ -372,6 +379,7 @@ function App() {
       const session = await startGameSession(selectedGame.slug)
       setCurrentSession(session)
       setSessionId(session.sessionId)
+      setYinYangPlayResult(null)
       setScreen('play')
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to start game session'
@@ -381,15 +389,18 @@ function App() {
     }
   }
 
-  const onFinishPlay = async () => {
+  const onFinishPlay = async (customResult?: YinYangSamuraiPlayResult) => {
     if (!sessionId || !currentSession || !selectedGame) {
       setSessionError('Session not found. Start a new game session.')
       return
     }
 
-    const ms = Math.floor(160 + Math.random() * 240)
+    const isYinYang = selectedGame.slug === 'yinyang-samurai'
+    const ms = customResult?.durationMs ?? Math.floor(160 + Math.random() * 240)
     const maxScore = Number(selectedGame.config.maxScore ?? 1000)
-    const computedScore = Math.max(0, Math.min(maxScore, Math.round(maxScore - ms * 2)))
+    const computedScore = customResult
+      ? Math.max(0, Math.min(maxScore, customResult.score))
+      : Math.max(0, Math.min(maxScore, Math.round(maxScore - ms * 2)))
 
     try {
       setSubmittingScore(true)
@@ -402,6 +413,7 @@ function App() {
       setSubmittedScore(computedScore)
       setSubmitResult(result)
       setPlayDurationMs(ms)
+      setYinYangPlayResult(customResult ?? null)
 
       if (currentSession.gameId) {
         void loadLeaderboard(currentSession.gameId)
@@ -416,7 +428,13 @@ function App() {
       setSubmittingScore(false)
     }
 
-    setReactionTimeMs(ms)
+    if (!isYinYang) {
+      setReactionTimeMs(ms)
+    }
+  }
+
+  const onFinishYinYangPlay = (result: YinYangSamuraiPlayResult) => {
+    void onFinishPlay(result)
   }
 
   const onPlayAgain = () => {
@@ -424,6 +442,7 @@ function App() {
     setPlayDurationMs(null)
     setSubmitResult(null)
     setSubmittedScore(null)
+    setYinYangPlayResult(null)
     void onStartSession()
   }
 
@@ -438,7 +457,9 @@ function App() {
 
       const share = await createSharePost({
         scoreId: submitResult.scoreId,
-        caption: `I scored ${submittedScore ?? 0} in ${selectedGame.title}`,
+        caption: yinYangPlayResult
+          ? `I scored ${yinYangPlayResult.accuracy.toFixed(2)}% in ${selectedGame.title}! Can you cut better than me?`
+          : `I scored ${submittedScore ?? 0} in ${selectedGame.title}`,
       })
 
       setShareResult(share)
@@ -462,6 +483,8 @@ function App() {
   const onBackToHome = () => {
     navigateToRoute({ name: 'home' })
   }
+
+  const isYinYangSelected = selectedGame?.slug === 'yinyang-samurai'
 
   return (
     <>
@@ -648,81 +671,122 @@ function App() {
         ) : null}
 
         {screen === 'play' ? (
-          <section className="game-frame" data-testid="game-play-screen" aria-label="Portrait game area preview">
-            <div className="game-frame-inner">
-              <p>TAP TO SCORE</p>
-              <button
-                type="button"
-                className="tap-orb"
-                data-testid="tap-play-area"
-                aria-label="Tap play area"
-                disabled={submittingScore}
-                onClick={() => void onFinishPlay()}
-              >
-                {submittingScore ? 'Submitting...' : 'Tap'}
-              </button>
-              <small data-testid="session-started-state">
-                Session active: {sessionId ?? '-'}
-              </small>
+          isYinYangSelected ? (
+            <section className="game-frame" data-testid="game-play-screen" aria-label="YinYang Samurai game screen">
+              <YinYangSamuraiGame onFinish={onFinishYinYangPlay} submitting={submittingScore} />
+              <small data-testid="session-started-state">Session active: {sessionId ?? '-'}</small>
               {sessionError ? <small className="inline-error">{sessionError}</small> : null}
-            </div>
-          </section>
+            </section>
+          ) : (
+            <section className="game-frame" data-testid="game-play-screen" aria-label="Portrait game area preview">
+              <div className="game-frame-inner">
+                <p>TAP TO SCORE</p>
+                <button
+                  type="button"
+                  className="tap-orb"
+                  data-testid="tap-play-area"
+                  aria-label="Tap play area"
+                  disabled={submittingScore}
+                  onClick={() => void onFinishPlay()}
+                >
+                  {submittingScore ? 'Submitting...' : 'Tap'}
+                </button>
+                <small data-testid="session-started-state">
+                  Session active: {sessionId ?? '-'}
+                </small>
+                {sessionError ? <small className="inline-error">{sessionError}</small> : null}
+              </div>
+            </section>
+          )
         ) : null}
 
         {screen === 'result' ? (
-          <section className="result-panel" data-testid="score-result-screen">
-            <h3>{selectedGame?.title ?? 'Result'}</h3>
-            <p data-testid="reaction-time-result">{reactionTimeMs ?? 0}ms</p>
-            <p>Score: {submittedScore ?? 0}</p>
-            <p>Validation: {submitResult?.validationStatus ?? '-'}</p>
-            <CoinBadge value={submitResult?.coinReward ?? 0} />
-            {typeof submitResult?.rankHint === 'number' ? <p>Rank hint: #{submitResult.rankHint}</p> : null}
-            {typeof submitResult?.totalCoin === 'number' ? <p>Total coin: {submitResult.totalCoin}</p> : null}
-            {playDurationMs ? <p>Duration: {playDurationMs}ms</p> : null}
+          isYinYangSelected && yinYangPlayResult ? (
+            <>
+              <YinYangSamuraiResult
+                result={yinYangPlayResult}
+                submitResult={submitResult}
+                shareLoading={shareLoading}
+                onCreateShare={() => void onCreateShare()}
+                onPlayAgain={onPlayAgain}
+                onBackToGames={onBackToCatalog}
+                shareError={shareError}
+                shareUrl={shareResult?.shareUrl ?? null}
+              />
 
-            <section className="detail-actions">
-              <Button fullWidth variant="secondary" disabled={shareLoading} onClick={() => void onCreateShare()}>
-                {shareLoading ? 'Creating Share...' : 'Create Share Link'}
-              </Button>
-            </section>
+              <section className="result-panel">
+                <h4>Leaderboard</h4>
+                {leaderboardLoading ? <p>Loading leaderboard...</p> : null}
+                {leaderboardError ? <p className="inline-error">{leaderboardError}</p> : null}
+                {!leaderboardLoading && !leaderboardError && leaderboard.length === 0 ? (
+                  <p>No leaderboard data yet.</p>
+                ) : null}
+                {!leaderboardLoading && !leaderboardError && leaderboard.length > 0 ? (
+                  <ol>
+                    {leaderboard.map((item) => (
+                      <li key={`${item.user_id}-${item.created_at}`}>
+                        {(item.display_name ?? 'Guest')} - {item.score}
+                      </li>
+                    ))}
+                  </ol>
+                ) : null}
+              </section>
+            </>
+          ) : (
+            <section className="result-panel" data-testid="score-result-screen">
+              <h3>{selectedGame?.title ?? 'Result'}</h3>
+              <p data-testid="reaction-time-result">{reactionTimeMs ?? 0}ms</p>
+              <p>Score: {submittedScore ?? 0}</p>
+              <p>Validation: {submitResult?.validationStatus ?? '-'}</p>
+              <CoinBadge value={submitResult?.coinReward ?? 0} />
+              {typeof submitResult?.rankHint === 'number' ? <p>Rank hint: #{submitResult.rankHint}</p> : null}
+              {typeof submitResult?.totalCoin === 'number' ? <p>Total coin: {submitResult.totalCoin}</p> : null}
+              {playDurationMs ? <p>Duration: {playDurationMs}ms</p> : null}
 
-            {shareError ? <p className="inline-error">{shareError}</p> : null}
-            {shareResult ? (
-              <p>
-                Share URL:{' '}
-                <a href={shareResult.shareUrl} target="_blank" rel="noreferrer">
-                  {shareResult.shareUrl}
-                </a>
-              </p>
-            ) : null}
+              <section className="detail-actions">
+                <Button fullWidth variant="secondary" disabled={shareLoading} onClick={() => void onCreateShare()}>
+                  {shareLoading ? 'Creating Share...' : 'Create Share Link'}
+                </Button>
+              </section>
 
-            <section>
-              <h4>Leaderboard</h4>
-              {leaderboardLoading ? <p>Loading leaderboard...</p> : null}
-              {leaderboardError ? <p className="inline-error">{leaderboardError}</p> : null}
-              {!leaderboardLoading && !leaderboardError && leaderboard.length === 0 ? (
-                <p>No leaderboard data yet.</p>
+              {shareError ? <p className="inline-error">{shareError}</p> : null}
+              {shareResult ? (
+                <p>
+                  Share URL:{' '}
+                  <a href={shareResult.shareUrl} target="_blank" rel="noreferrer">
+                    {shareResult.shareUrl}
+                  </a>
+                </p>
               ) : null}
-              {!leaderboardLoading && !leaderboardError && leaderboard.length > 0 ? (
-                <ol>
-                  {leaderboard.map((item) => (
-                    <li key={`${item.user_id}-${item.created_at}`}>
-                      {(item.display_name ?? 'Guest')} - {item.score}
-                    </li>
-                  ))}
-                </ol>
-              ) : null}
-            </section>
 
-            <div className="detail-actions">
-              <Button fullWidth data-testid="play-again-action" disabled={startingSession} onClick={onPlayAgain}>
-                {startingSession ? 'Starting...' : 'Play Again'}
-              </Button>
-              <Button fullWidth variant="secondary" onClick={onBackToCatalog}>
-                Back to Games
-              </Button>
-            </div>
-          </section>
+              <section>
+                <h4>Leaderboard</h4>
+                {leaderboardLoading ? <p>Loading leaderboard...</p> : null}
+                {leaderboardError ? <p className="inline-error">{leaderboardError}</p> : null}
+                {!leaderboardLoading && !leaderboardError && leaderboard.length === 0 ? (
+                  <p>No leaderboard data yet.</p>
+                ) : null}
+                {!leaderboardLoading && !leaderboardError && leaderboard.length > 0 ? (
+                  <ol>
+                    {leaderboard.map((item) => (
+                      <li key={`${item.user_id}-${item.created_at}`}>
+                        {(item.display_name ?? 'Guest')} - {item.score}
+                      </li>
+                    ))}
+                  </ol>
+                ) : null}
+              </section>
+
+              <div className="detail-actions">
+                <Button fullWidth data-testid="play-again-action" disabled={startingSession} onClick={onPlayAgain}>
+                  {startingSession ? 'Starting...' : 'Play Again'}
+                </Button>
+                <Button fullWidth variant="secondary" onClick={onBackToCatalog}>
+                  Back to Games
+                </Button>
+              </div>
+            </section>
+          )
         ) : null}
       </Card>
 

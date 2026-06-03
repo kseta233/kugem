@@ -1133,6 +1133,168 @@ body {
   font: var(--font-label-sm);
 }
 
+.yys-shell {
+  width: 100%;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.yys-panel {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.yys-panel p {
+  margin: 0;
+}
+
+.yys-countdown {
+  min-height: 60svh;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(180deg, var(--color-brand-container), var(--color-brand));
+  display: grid;
+  place-items: center;
+}
+
+.yys-countdown p {
+  margin: 0;
+  font: var(--font-display-lg);
+  color: var(--color-brand-on);
+  font-size: clamp(56px, 18vw, 110px);
+}
+
+.yys-arena {
+  position: relative;
+  width: 100%;
+  min-height: 64svh;
+  max-height: 844px;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  border: 1px solid color-mix(in srgb, var(--color-brand), white 45%);
+  background:
+    radial-gradient(circle at 20% 24%, color-mix(in srgb, var(--color-brand-soft) 78%, transparent), transparent 38%),
+    radial-gradient(circle at 80% 88%, color-mix(in srgb, var(--color-accent) 22%, transparent), transparent 30%),
+    linear-gradient(180deg, #ffffff 0%, color-mix(in srgb, var(--color-bg), white 20%) 100%);
+  touch-action: none;
+}
+
+.yys-orb {
+  position: absolute;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 32% 35%, #ffffff 0%, #ffffff 24%, #111418 25%, #111418 44%, transparent 46%),
+    radial-gradient(circle at 68% 65%, #111418 0%, #111418 24%, #ffffff 25%, #ffffff 44%, transparent 46%),
+    linear-gradient(90deg, #ffffff 0%, #ffffff 50%, #111418 50%, #111418 100%);
+  border: 2px solid #111418;
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--color-brand) 18%, transparent);
+}
+
+.yys-cut-line {
+  position: absolute;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--color-accent), color-mix(in srgb, var(--color-brand), white 10%));
+  box-shadow: 0 0 18px color-mix(in srgb, var(--color-accent) 55%, transparent);
+}
+
+.yys-timer {
+  position: absolute;
+  left: 50%;
+  bottom: var(--space-3);
+  transform: translateX(-50%);
+  min-width: 94px;
+  min-height: 44px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-surface), transparent 8%);
+  color: var(--color-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  font: var(--font-headline-md);
+}
+
+.yys-result-toast {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  left: var(--space-3);
+  z-index: 2;
+  background: color-mix(in srgb, var(--color-surface), transparent 2%);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px var(--color-shadow);
+  padding: var(--space-3);
+  display: grid;
+  gap: 2px;
+}
+
+.yys-result-toast strong {
+  font: var(--font-headline-md);
+  color: var(--color-text);
+}
+
+.yys-result-toast span,
+.yys-result-toast small {
+  color: var(--color-text-muted);
+  font: var(--font-label-lg);
+}
+
+.yys-confetti {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.yys-confetti span {
+  position: absolute;
+  top: -12px;
+  width: 10px;
+  height: 16px;
+  border-radius: 4px;
+  animation: yys-confetti-drop 1.2s ease-out forwards;
+}
+
+.yys-confetti span:nth-child(1) {
+  left: 20%;
+  background: var(--color-brand);
+}
+
+.yys-confetti span:nth-child(2) {
+  left: 38%;
+  background: var(--color-accent);
+  animation-delay: 0.06s;
+}
+
+.yys-confetti span:nth-child(3) {
+  left: 62%;
+  background: var(--color-coin-bg);
+  animation-delay: 0.1s;
+}
+
+.yys-confetti span:nth-child(4) {
+  left: 80%;
+  background: var(--color-brand-container);
+  animation-delay: 0.14s;
+}
+
+@keyframes yys-confetti-drop {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(56svh) rotate(460deg);
+    opacity: 0;
+  }
+}
+
 .foot-note {
   text-align: center;
   font: var(--font-label-sm);

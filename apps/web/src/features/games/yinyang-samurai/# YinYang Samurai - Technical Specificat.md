@@ -835,3 +835,64 @@ Tidak termasuk:
 * Analytics dashboard
 
 ---
+
+# 21. Implementation Plan Checklist
+
+Checklist ini dipakai untuk tracking implementasi dari TSD ke kode produksi.
+
+## 21.1 Setup and Integration
+
+- [x] Tambahkan metadata game `yinyang-samurai` ke game catalog (slug, title, category, maxScore).
+- [x] Pastikan routing/play screen bisa mendeteksi slug `yinyang-samurai`.
+- [x] Integrasikan alur session existing: `startGameSession` saat mulai bermain.
+- [x] Integrasikan submit hasil ke `submitScore(sessionId, score, durationMs)` saat game selesai.
+
+## 21.2 Module Structure
+
+- [x] Buat struktur folder module di `apps/web/src/features/games/yinyang-samurai/` sesuai rekomendasi TSD.
+- [x] Buat `types/yinyangSamurai.types.ts` untuk result type, cut line, dan config.
+- [x] Buat `index.ts` sebagai public export module.
+
+## 21.3 Core Engine
+
+- [x] Implement `engine/throwPhysics.ts` untuk trajectory naik-turun object.
+- [x] Implement `engine/cutDetection.ts` untuk cek intersection swipe line dan lingkaran.
+- [x] Implement `engine/scoring.ts` untuk hitung accuracy berbasis perbandingan area.
+- [x] Implement `engine/resultGrade.ts` untuk mapping accuracy ke grade message.
+
+## 21.4 Phaser Scene
+
+- [ ] Implement `scene/YinYangSamuraiScene.ts` dengan state: instruction -> countdown -> playing -> result.
+- [x] Render object lingkaran/yin-yang dan animasi lempar dari bawah layar.
+- [x] Implement countdown 3-2-1-GO dengan timing sesuai spesifikasi.
+- [x] Implement swipe input (touch + mouse) dan batasi hanya satu cut per ronde.
+- [x] Lock input setelah cut, stop timer, lalu hitung result.
+- [x] Implement missed state jika object keluar layar tanpa cut.
+
+## 21.5 React Bridge and UI
+
+- [ ] Implement `hooks/useYinYangSamuraiGame.ts` untuk lifecycle Phaser mount/unmount.
+- [x] Implement `components/YinYangSamuraiGame.tsx` sebagai wrapper React + callback `onFinish`.
+- [x] Tampilkan timer realtime dengan 2 decimal saat gameplay.
+- [x] Implement result popup dengan accuracy, duration, grade, dan tombol Try Again.
+- [x] Implement confetti jika accuracy >= 95%.
+
+## 21.6 Share and Retry
+
+- [ ] Implement tombol Share menggunakan Web Share API.
+- [ ] Tambahkan fallback copy-to-clipboard saat Web Share tidak tersedia.
+- [x] Implement flow Try Again untuk reset state dan mulai ronde baru.
+
+## 21.7 Quality and Acceptance
+
+- [ ] Validasi layout portrait-first dan mobile-first (touch target, safe area, no hover-only action).
+- [ ] Validasi performa target 60 FPS pada device representative.
+- [ ] Uji acceptance criteria gameplay (countdown, throw, swipe, one-cut, timer, result).
+- [ ] Uji acceptance criteria result (accuracy benar, time benar, share jalan, confetti trigger).
+- [ ] Uji skenario edge case: swipe miss, swipe terlalu cepat, cut dekat tepi object.
+
+## 21.8 Nice-to-Have (After MVP)
+
+- [ ] Tambah SFX countdown/slash/result.
+- [ ] Tambah ambient music opsional dengan kontrol mute.
+
