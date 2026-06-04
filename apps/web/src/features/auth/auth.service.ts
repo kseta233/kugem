@@ -78,10 +78,10 @@ export const resetClientAppState = async (): Promise<void> => {
 
 const getGoogleAuthRedirectTo = (): string => {
   if (typeof window === 'undefined') {
-    return 'http://localhost:5173/auth'
+    return 'http://localhost:5173'
   }
 
-  return `${window.location.origin}/auth`
+  return window.location.origin
 }
 
 const openOAuthPopup = (url: string): void => {

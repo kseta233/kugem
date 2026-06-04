@@ -206,7 +206,7 @@ export function AppShell() {
   }, [isRegisteredProfile, navigateToRoute, route.name, setAppPhase])
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !window.opener || !isRegisteredProfile || route.name !== 'auth') {
+    if (typeof window === 'undefined' || !window.opener || !isRegisteredProfile) {
       return
     }
 
@@ -215,7 +215,7 @@ export function AppShell() {
     }, 250)
 
     return () => window.clearTimeout(timer)
-  }, [isRegisteredProfile, route.name])
+  }, [isRegisteredProfile])
 
   useEffect(() => {
     if (route.name !== 'yinyang-intro' && route.name !== 'yinyang-play') {
