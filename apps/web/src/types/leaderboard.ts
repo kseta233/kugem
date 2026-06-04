@@ -3,5 +3,6 @@ export type LeaderboardItem = {
   display_name: string | null
   avatar_url: string | null
   score: number
+  rank: number
   created_at: string
 }

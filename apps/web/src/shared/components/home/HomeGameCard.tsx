@@ -59,14 +59,16 @@ export function HomeGameCard({
         onClick={onAction}
         disabled={disabled || !onAction}
         data-testid={buttonTestId}
-      >
-        {disabled ? (
-          <Icon name="hourglass" size={16} className="app-icon" />
-        ) : (
-          <Icon name="play" size={16} className="app-icon" />
-        )}
-        {actionLabel}
-      </Button>
+        title={actionLabel}
+        leftIcon={
+          disabled ? (
+            <Icon name="hourglass" size={16} className="app-icon" />
+          ) : (
+            <Icon name="play" size={16} className="app-icon" />
+          )
+        }
+        rightIcon={!disabled ? <Icon name="arrow-right" size={16} className="app-icon" /> : null}
+      />
     </Card>
   )
 }

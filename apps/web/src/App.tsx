@@ -8,7 +8,11 @@ import {
   type StartGameSessionResult,
   type SubmitScoreResult,
 } from '@/features/sessions/sessions.service'
-import { createSharePost, type CreateSharePostResult } from '@/features/share/share.service'
+import {
+  createSharePost,
+  shareGameResult,
+  type CreateSharePostResult,
+} from '@/features/share/share.service'
 import { getPublicSharePostBySlug, type PublicSharePost } from '@/features/share/share.service'
 import {
   YinYangSamuraiGame,
@@ -19,6 +23,7 @@ import { Button, Card, CoinBadge, HomeCategoryChips, HomeGameCard, Page } from '
 import type { HomeCategory } from '@/shared/components'
 import { ProfileScreen } from '@/screens/ProfileScreen'
 import { AuthScreen } from '@/screens/AuthScreen'
+import { RegisterPromptModal } from '@/screens/RegisterPromptModal'
 import { ShareScreen } from '@/screens/ShareScreen'
 import { SplashScreen } from '@/screens/SplashScreen'
 import { WelcomeScreen } from '@/screens/WelcomeScreen'
@@ -143,6 +148,7 @@ function App() {
     updateDisplayName,
     signInWithEmail,
     signUpWithEmail,
+    signInWithGoogle,
   } = useAnonymousAuth()
 
   const [route, setRoute] = useState<AppRoute>(() => {
@@ -229,6 +235,7 @@ function App() {
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [startingSession, setStartingSession] = useState(false)
   const [sessionError, setSessionError] = useState<string | null>(null)
+  const [registerPromptOpen, setRegisterPromptOpen] = useState(false)
   const [reactionTimeMs, setReactionTimeMs] = useState<number | null>(null)
   const [yinYangPlayResult, setYinYangPlayResult] = useState<YinYangSamuraiPlayResult | null>(null)
   const [isYinYangResultOpen, setIsYinYangResultOpen] = useState(false)
@@ -298,8 +305,13 @@ function App() {
     [navigateToRoute, signUpWithEmail],
   )
 
+  const onAuthGoogle = useCallback(async () => {
+    await signInWithGoogle()
+  }, [signInWithGoogle])
+
   const hasProfile = Boolean(profile)
   const isRestoredSession = sessionSource === 'restored'
+  const isRegisteredProfile = profile?.app_status === 'registered'
   const homeDisplayName = profile?.display_name?.trim() || 'Guest'
 
   const loadGames = useCallback(async () => {
@@ -364,6 +376,33 @@ function App() {
 
     void loadPublicShare(route.slug)
   }, [appPhase, route, loading, user, loadPublicShare])
+
+  useEffect(() => {
+    if (registerPromptOpen && isRegisteredProfile) {
+      setRegisterPromptOpen(false)
+    }
+  }, [isRegisteredProfile, registerPromptOpen])
+
+  useEffect(() => {
+    if (route.name !== 'auth' || !isRegisteredProfile) {
+      return
+    }
+
+    setAppPhase('welcome')
+    navigateToRoute({ name: 'home' })
+  }, [isRegisteredProfile, navigateToRoute, route.name])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.opener || !isRegisteredProfile || route.name !== 'auth') {
+      return
+    }
+
+    const timer = window.setTimeout(() => {
+      window.close()
+    }, 250)
+
+    return () => window.clearTimeout(timer)
+  }, [isRegisteredProfile, route.name])
 
   const onSignOut = async () => {
     try {
@@ -452,6 +491,25 @@ function App() {
       ? Math.max(0, Math.min(maxScore, customResult.score))
       : Math.max(0, Math.min(maxScore, Math.round(maxScore - ms * 2)))
 
+    if (isYinYang) {
+      setSessionError(null)
+      setShareResult(null)
+      setShareError(null)
+      setNativeShareStatus(null)
+      setSubmittedScore(computedScore)
+      setSubmitResult(null)
+      setPlayDurationMs(ms)
+      setYinYangPlayResult(customResult ?? null)
+      setIsYinYangResultOpen(true)
+
+      if (currentSession.gameId) {
+        void loadLeaderboard(currentSession.gameId)
+      }
+
+      setScreen('play')
+      return
+    }
+
     try {
       setSubmittingScore(true)
       setSessionError(null)
@@ -471,11 +529,7 @@ function App() {
       }
 
       await refresh()
-      if (isYinYang) {
-        setScreen('play')
-      } else {
-        setScreen('result')
-      }
+      setScreen('result')
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to submit score'
       setSessionError(message)
@@ -483,9 +537,7 @@ function App() {
       setSubmittingScore(false)
     }
 
-    if (!isYinYang) {
-      setReactionTimeMs(ms)
-    }
+    setReactionTimeMs(ms)
   }
 
   const onFinishYinYangPlay = (result: YinYangSamuraiPlayResult) => {
@@ -504,6 +556,13 @@ function App() {
 
   const onCreateShare = async () => {
     if (!submitResult?.scoreId || !selectedGame) {
+      return
+    }
+
+    if (!isRegisteredProfile) {
+      setRegisterPromptOpen(true)
+      setShareError(null)
+      setNativeShareStatus(null)
       return
     }
 
@@ -528,23 +587,74 @@ function App() {
   }
 
   const ensureShareLink = useCallback(async (): Promise<string | null> => {
+    if (!isRegisteredProfile) {
+      setRegisterPromptOpen(true)
+      setShareError(null)
+      setNativeShareStatus(null)
+      return null
+    }
+
     if (shareResult?.shareUrl) {
       return shareResult.shareUrl
     }
 
-    if (!submitResult?.scoreId || !selectedGame) {
+    if (!selectedGame) {
       return null
     }
+
+    const caption = yinYangPlayResult
+      ? `I scored ${yinYangPlayResult.accuracy.toFixed(2)}% in ${selectedGame.title}! Can you cut better than me?`
+      : `I scored ${submittedScore ?? 0} in ${selectedGame.title}`
 
     try {
       setShareLoading(true)
       setShareError(null)
 
+      if (
+        selectedGame.slug === 'yinyang-samurai' &&
+        !submitResult?.scoreId &&
+        sessionId &&
+        typeof submittedScore === 'number' &&
+        typeof playDurationMs === 'number'
+      ) {
+        const share = await shareGameResult({
+          sessionId,
+          score: submittedScore,
+          durationMs: playDurationMs,
+          caption,
+        })
+
+        setSubmitResult({
+          scoreId: share.scoreId,
+          validationStatus: share.validationStatus,
+          enteredLeaderboard: share.enteredLeaderboard,
+          coinReward: share.coinReward,
+          totalCoin: share.totalCoin,
+          leaderboardRank: share.leaderboardRank,
+          rankHint: share.rankHint,
+        })
+        setShareResult({
+          postId: share.postId,
+          shareSlug: share.shareSlug,
+          shareUrl: share.shareUrl,
+        })
+
+        if (currentSession?.gameId) {
+          void loadLeaderboard(currentSession.gameId)
+        }
+
+        await refresh()
+        return share.shareUrl
+      }
+
+      if (!submitResult?.scoreId) {
+        setShareError('Result is not ready to share yet.')
+        return null
+      }
+
       const share = await createSharePost({
         scoreId: submitResult.scoreId,
-        caption: yinYangPlayResult
-          ? `I scored ${yinYangPlayResult.accuracy.toFixed(2)}% in ${selectedGame.title}! Can you cut better than me?`
-          : `I scored ${submittedScore ?? 0} in ${selectedGame.title}`,
+        caption,
       })
 
       setShareResult(share)
@@ -556,7 +666,19 @@ function App() {
     } finally {
       setShareLoading(false)
     }
-  }, [selectedGame, shareResult?.shareUrl, submitResult?.scoreId, submittedScore, yinYangPlayResult])
+  }, [
+    currentSession?.gameId,
+    loadLeaderboard,
+    playDurationMs,
+    refresh,
+    selectedGame,
+    sessionId,
+    shareResult?.shareUrl,
+    submitResult?.scoreId,
+    submittedScore,
+    isRegisteredProfile,
+    yinYangPlayResult,
+  ])
 
   const onNativeShareYinYang = useCallback(async () => {
     if (!selectedGame || !yinYangPlayResult) {
@@ -565,6 +687,9 @@ function App() {
 
     setNativeShareStatus(null)
     const shareUrl = await ensureShareLink()
+    if (!shareUrl) {
+      return
+    }
     const text = `I scored ${yinYangPlayResult.accuracy.toFixed(2)}% in ${selectedGame.title}! Can you cut better than me?`
 
     try {
@@ -686,6 +811,7 @@ function App() {
             loading={loading}
             error={error}
             onBack={onAuthBackToWelcome}
+            onGoogleAuth={onAuthGoogle}
             onSignIn={onAuthSignIn}
             onSignUp={onAuthSignUp}
           />
@@ -861,7 +987,7 @@ function App() {
                   aria-label="Close game"
                   onClick={onCloseYinYangFullscreen}
                 >
-                  Close
+                  <span aria-hidden="true">×</span>
                 </button>
 
                 <div className="yys-fullscreen-inner">
@@ -989,6 +1115,19 @@ function App() {
       </Page>
         )
       )}
+
+      <RegisterPromptModal
+        open={registerPromptOpen}
+        loading={loading}
+        error={error}
+        onClose={() => setRegisterPromptOpen(false)}
+        onGoogleAuth={onAuthGoogle}
+        onOpenAuthPage={() => {
+          setRegisterPromptOpen(false)
+          setAppPhase('main')
+          navigateToRoute({ name: 'auth' })
+        }}
+      />
     </>
   )
 }

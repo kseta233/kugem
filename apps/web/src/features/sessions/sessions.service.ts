@@ -13,8 +13,10 @@ export type StartGameSessionResult = {
 export type SubmitScoreResult = {
   scoreId: string
   validationStatus: 'valid' | 'suspicious' | 'rejected'
+  enteredLeaderboard: boolean
   coinReward: number
   totalCoin: number | null
+  leaderboardRank: number | null
   rankHint: number | null
 }
 

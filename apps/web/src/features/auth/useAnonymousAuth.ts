@@ -1,8 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
-import { signInAnonymously, signInWithEmail, signOut, signUpWithEmail } from '@/features/auth/auth.service'
+import {
+  signInAnonymously,
+  signInWithEmail,
+  signInWithGoogle,
+  signOut,
+  signUpWithEmail,
+} from '@/features/auth/auth.service'
 import type { SessionSource } from '@/features/auth/auth.service'
 import { getProfile, upsertProfile, updateProfile } from '@/features/profile/profile.service'
+import { supabase } from '@/lib/supabase'
 import type { Profile } from '@/types/profile'
 import type { UserAppStatus } from '@/types/profile'
 
@@ -17,6 +24,7 @@ type UseAnonymousAuthResult = {
   updateDisplayName: (displayName: string) => Promise<void>
   signInWithEmail: (email: string, password: string) => Promise<void>
   signUpWithEmail: (displayName: string, email: string, password: string) => Promise<void>
+  signInWithGoogle: () => Promise<void>
 }
 
 const DEFAULT_DISPLAY_NAME = 'Guest'
@@ -102,6 +110,23 @@ export const useAnonymousAuth = (): UseAnonymousAuthResult => {
     })
   }, [bootstrap])
 
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      const authedUser = session?.user
+      if (!authedUser || authedUser.is_anonymous) {
+        return
+      }
+
+      setUser(authedUser)
+      setSessionSource('new')
+      void syncProfile(authedUser)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [syncProfile])
+
   const refresh = useCallback(async () => {
     await bootstrap()
   }, [bootstrap])
@@ -150,6 +175,21 @@ export const useAnonymousAuth = (): UseAnonymousAuthResult => {
     [syncProfile],
   )
 
+  const signInWithGoogleCredentials = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      await signInWithGoogle()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Google sign-in failed'
+      setError(message)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   const updateDisplayName = useCallback(
     async (displayName: string) => {
       if (!user) {
@@ -176,5 +216,6 @@ export const useAnonymousAuth = (): UseAnonymousAuthResult => {
     updateDisplayName,
     signInWithEmail: signInWithEmailCredentials,
     signUpWithEmail: signUpWithEmailCredentials,
+    signInWithGoogle: signInWithGoogleCredentials,
   }
 }

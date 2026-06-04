@@ -70,7 +70,7 @@ export const YinYangSamuraiResult = ({
             topPlayers.map((item, index) => (
               <div className="yys-result-card__leader-row" key={`${item.user_id}-${item.created_at}`}>
                 <div className="yys-result-card__leader-meta">
-                  <span className="yys-result-card__leader-rank">{index + 1}</span>
+                  <span className="yys-result-card__leader-rank">{item.rank ?? index + 1}</span>
                   <span>{item.display_name ?? 'Guest'}</span>
                 </div>
                 <span className="yys-result-card__leader-score">{toLeaderboardAccuracy(item.score)}</span>
@@ -82,6 +82,13 @@ export const YinYangSamuraiResult = ({
 
       {submitResult?.validationStatus ? (
         <p className="yys-result-card__meta">Validation: {submitResult.validationStatus}</p>
+      ) : null}
+      {!submitResult ? <p className="yys-result-card__meta">Share to save this result to cloud.</p> : null}
+      {submitResult && !submitResult.enteredLeaderboard ? (
+        <p className="yys-result-card__meta">Result saved, but it did not enter the top 3 leaderboard.</p>
+      ) : null}
+      {submitResult?.enteredLeaderboard && submitResult.leaderboardRank ? (
+        <p className="yys-result-card__meta">Leaderboard rank: #{submitResult.leaderboardRank}</p>
       ) : null}
       {shareError ? <p className="inline-error">{shareError}</p> : null}
       {nativeShareStatus ? <p className="yys-result-card__meta">{nativeShareStatus}</p> : null}
