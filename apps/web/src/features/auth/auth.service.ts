@@ -77,6 +77,11 @@ export const resetClientAppState = async (): Promise<void> => {
 }
 
 const getGoogleAuthRedirectTo = (): string => {
+  const configuredRedirect = import.meta.env.VITE_AUTH_REDIRECT_URL
+  if (typeof configuredRedirect === 'string' && configuredRedirect.trim().length > 0) {
+    return configuredRedirect.trim()
+  }
+
   if (typeof window === 'undefined') {
     return 'http://localhost:5173/auth'
   }
@@ -163,10 +168,12 @@ export const signInWithEmail = async (email: string, password: string): Promise<
 }
 
 export const signInWithGoogle = async (): Promise<void> => {
+  const redirectTo = getGoogleAuthRedirectTo()
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: getGoogleAuthRedirectTo(),
+      redirectTo,
       skipBrowserRedirect: true,
     },
   })

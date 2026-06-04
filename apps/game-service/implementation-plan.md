@@ -17,6 +17,16 @@ Implement an MVP runtime-authoritative game service that:
 - Small vertical slices that are runnable after each step.
 - Keep architecture simple for MVP; avoid infra overbuild.
 
+## Milestone Checklist
+
+- [x] M1 - Bootstrap and Guardrails
+- [x] M2 - Runtime Models and Store
+- [ ] M3 - Room Lifecycle API
+- [ ] M4 - RockPaperScissor Engine
+- [ ] M5 - Session Gameplay API
+- [ ] M6 - Result Publisher Contract
+- [ ] M7 - Hardening and Docs
+
 ## Milestones
 
 ## M1 - Bootstrap and Guardrails
@@ -68,6 +78,10 @@ Acceptance:
 
 - two users can create/join/ready/start
 - third user join rejected with stable error code
+- same player cant join same room
+- there are validation of player id into supabase first
+- api documentation for FE
+- api testing for endpoints
 
 ## M4 - RockPaperScissor Engine
 
@@ -90,6 +104,8 @@ Deliverables:
 - GET /v1/sessions/:sessionId/state
 - POST /v1/sessions/:sessionId/actions
 - stateVersion incrementing and action ordering
+- api documentation for FE
+- api testing for endpoints
 
 Acceptance:
 
@@ -138,14 +154,6 @@ Target error codes:
 - INVALID_ACTION
 - RESULT_SUBMISSION_FAILED
 - NOT_IMPLEMENTED
-
-## Definition Of Ready For Vibe Coding
-
-Start implementation when all are true:
-
-1. Team accepts this plan.
-2. API and error code names are frozen for MVP.
-3. Supabase result-function endpoint and shared HMAC secret strategy are agreed.
 
 ## Definition Of Done
 

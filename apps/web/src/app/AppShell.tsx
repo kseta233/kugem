@@ -114,8 +114,8 @@ export function AppShell() {
   )
 
   const onAuthSignUp = useCallback(
-    async (displayName: string, email: string, password: string) => {
-      await signUpWithEmail(displayName, email, password)
+    async (email: string, password: string) => {
+      await signUpWithEmail(email, password)
       setAppPhase('welcome')
       setScreen('catalog')
       navigateToRoute({ name: 'home' })
@@ -540,11 +540,11 @@ export function AppShell() {
       {(appPhase === 'splash-exiting' || appPhase === 'welcome' || appPhase === 'welcome-exiting') && (
         <WelcomeScreen
           profile={profile}
-          sessionSource={sessionSource}
           isExiting={appPhase === 'welcome-exiting'}
           savingDisplayName={saving}
           onSaveDisplayName={onSaveWelcomeDisplayName}
-          onOpenAuth={onOpenAuthPage}
+          onOpenCreateAccount={onOpenAuthPage}
+          onSignUpWithGoogle={onAuthGoogle}
           onContinue={onContinueToGames}
         />
       )}

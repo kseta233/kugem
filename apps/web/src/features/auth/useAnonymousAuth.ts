@@ -25,7 +25,7 @@ type UseAnonymousAuthResult = {
   updateDisplayName: (displayName: string) => Promise<void>
   updateAvatarIcon: (iconKey: string) => Promise<void>
   signInWithEmail: (email: string, password: string) => Promise<void>
-  signUpWithEmail: (displayName: string, email: string, password: string) => Promise<void>
+  signUpWithEmail: (email: string, password: string) => Promise<void>
   signInWithGoogle: () => Promise<void>
 }
 
@@ -198,7 +198,7 @@ export const useAnonymousAuth = (): UseAnonymousAuthResult => {
   }, [syncProfile])
 
   const signUpWithEmailCredentials = useCallback(
-    async (displayName: string, email: string, password: string) => {
+    async (email: string, password: string) => {
       setLoading(true)
       setError(null)
 
@@ -206,7 +206,7 @@ export const useAnonymousAuth = (): UseAnonymousAuthResult => {
         const authedUser = await signUpWithEmail(email.trim(), password)
         setUser(authedUser)
         setSessionSource('new')
-        await syncProfile(authedUser, displayName)
+        await syncProfile(authedUser)
       } catch (err) {
         const mappedError = mapProfileWriteError(err)
         const message = mappedError.message || 'Email sign-up failed'

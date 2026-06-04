@@ -10,15 +10,13 @@ interface AuthScreenProps {
   onBack: () => void
   onGoogleAuth: () => Promise<void>
   onSignIn: (email: string, password: string) => Promise<void>
-  onSignUp: (displayName: string, email: string, password: string) => Promise<void>
+  onSignUp: (email: string, password: string) => Promise<void>
 }
 
 export function AuthScreen({ loading, error, onBack, onGoogleAuth, onSignIn, onSignUp }: AuthScreenProps) {
   const [mode, setMode] = useState<AuthMode>('signup')
-  const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -29,20 +27,9 @@ export function AuthScreen({ loading, error, onBack, onGoogleAuth, onSignIn, onS
     event.preventDefault()
 
     const trimmedEmail = email.trim()
-    const trimmedName = displayName.trim()
 
     if (!trimmedEmail || !password) {
       setSubmitError('Email and password are required.')
-      return
-    }
-
-    if (isSignUp && !trimmedName) {
-      setSubmitError('Display name is required.')
-      return
-    }
-
-    if (isSignUp && !acceptedTerms) {
-      setSubmitError('You need to accept terms to create an account.')
       return
     }
 
@@ -51,7 +38,7 @@ export function AuthScreen({ loading, error, onBack, onGoogleAuth, onSignIn, onS
       setSubmitError(null)
 
       if (isSignUp) {
-        await onSignUp(trimmedName, trimmedEmail, password)
+        await onSignUp(trimmedEmail, password)
       } else {
         await onSignIn(trimmedEmail, password)
       }
@@ -130,25 +117,6 @@ export function AuthScreen({ loading, error, onBack, onGoogleAuth, onSignIn, onS
         </div>
 
         <form className="auth-form" onSubmit={(event) => void onSubmit(event)}>
-          {isSignUp ? (
-            <label className="auth-field" htmlFor="auth-display-name">
-              <span>Display name</span>
-              <input
-                id="auth-display-name"
-                data-testid="auth-display-name-input"
-                value={displayName}
-                onChange={(event) => setDisplayName(event.target.value)}
-                placeholder="Display Name"
-                autoComplete="nickname"
-                maxLength={32}
-                required
-              />
-              <small className="auth-field-help">
-                Must be unique and cannot be changed after registration.
-              </small>
-            </label>
-          ) : null}
-
           <label className="auth-field" htmlFor="auth-email">
             <span>Email</span>
             <input
@@ -184,18 +152,6 @@ export function AuthScreen({ loading, error, onBack, onGoogleAuth, onSignIn, onS
               <Icon name={showPassword ? 'eye-off' : 'eye'} size={18} className="app-icon" />
             </button>
           </label>
-
-          {isSignUp ? (
-            <label className="auth-terms" htmlFor="auth-accept-terms">
-              <input
-                id="auth-accept-terms"
-                type="checkbox"
-                checked={acceptedTerms}
-                onChange={(event) => setAcceptedTerms(event.target.checked)}
-              />
-              <span>I agree to the Terms & Conditions</span>
-            </label>
-          ) : null}
 
           {submitError ? <p className="inline-error">{submitError}</p> : null}
           {!submitError && error ? <p className="inline-error">{error}</p> : null}

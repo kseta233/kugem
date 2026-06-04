@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test'
 
 // TC-003: Register (Create Account with Email & Password)
-// Scenario: Anonymous user taps "Sign in or create account" → fills Auth screen
-// in Sign Up mode → submits → app returns to WelcomeScreen with saved name.
+// Scenario: Anonymous user taps "Create account" → fills Auth screen
+// in Sign Up mode → submits → app returns to WelcomeScreen and chooses display name.
 
 test('TC-003 register — create email account and return to welcome screen', async ({ page }) => {
   // Unique email avoids Supabase duplicate-account errors across test runs.
@@ -18,10 +18,8 @@ test('TC-003 register — create email account and return to welcome screen', as
   await expect(page.getByTestId('auth-screen')).toBeVisible()
 
   // ── Fill Sign Up form (default tab is Sign Up) ────────────────────────────
-  await page.getByTestId('auth-display-name-input').fill('E2E Registered')
   await page.getByTestId('auth-email-input').fill(uniqueEmail)
   await page.getByTestId('auth-password-input').fill('TestPass123!')
-  await page.locator('#auth-accept-terms').check()
 
   // ── Submit ────────────────────────────────────────────────────────────────
   await page.getByTestId('auth-submit').click()
@@ -30,8 +28,8 @@ test('TC-003 register — create email account and return to welcome screen', as
   // Allow 15 s for Supabase sign-up round trip
   await expect(page.getByTestId('anonymous-auth-ready')).toBeVisible({ timeout: 15_000 })
 
-  // Display name was saved during sign-up → "Continue to Games" replaces the form
-  await expect(page.getByTestId('continue-to-games')).toBeVisible()
+  // Display name is not set during sign-up, so welcome asks for it.
+  await expect(page.getByTestId('welcome-display-name-input')).toBeVisible()
 
   // No inline error should be present on the auth form
   await expect(page.getByTestId('auth-screen')).not.toBeVisible()

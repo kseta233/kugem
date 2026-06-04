@@ -1,16 +1,15 @@
 import type { FormEvent } from 'react'
 import { useEffect, useState } from 'react'
 import { Button, CoinBadge, Icon } from '@/shared/components'
-import type { SessionSource } from '@/features/auth/auth.service'
 import type { Profile } from '@/types/profile'
 
 interface Props {
   profile: Profile | null
-  sessionSource: SessionSource | null
   isExiting: boolean
   savingDisplayName: boolean
   onSaveDisplayName: (displayName: string) => Promise<void>
-  onOpenAuth: () => void
+  onOpenCreateAccount: () => void
+  onSignUpWithGoogle: () => Promise<void>
   onContinue: () => void
 }
 
@@ -23,11 +22,11 @@ const hasCustomDisplayName = (value: string | null | undefined) => {
 
 export function WelcomeScreen({
   profile,
-  sessionSource,
   isExiting,
   savingDisplayName,
   onSaveDisplayName,
-  onOpenAuth,
+  onOpenCreateAccount,
+  onSignUpWithGoogle,
   onContinue,
 }: Props) {
   const [nameInput, setNameInput] = useState('')
@@ -36,8 +35,11 @@ export function WelcomeScreen({
 
   const displayName = profile?.display_name?.trim() ?? ''
   const hasSavedName = hasCustomDisplayName(displayName)
-  const isReturningUser = sessionSource === 'restored'
-  const shouldShowNameInput = !isReturningUser
+  const isUnregisteredProfile =
+    profile?.app_status === 'unregistered' || profile?.app_status === 'anonymous' || !profile
+  const shouldShowCreateAccountActions = isUnregisteredProfile
+  const shouldShowNameInput = !isUnregisteredProfile && !hasSavedName
+  const shouldShowContinue = !shouldShowCreateAccountActions && !shouldShowNameInput
 
   useEffect(() => {
     setNameInput(hasSavedName ? displayName : '')
@@ -101,7 +103,15 @@ export function WelcomeScreen({
               </div>
             </div>
 
-            {!shouldShowNameInput ? (
+            {shouldShowCreateAccountActions ? (
+              <>
+                <p className="welcome-hero__eyebrow">Welcome to MiniPlay</p>
+                <h1 className="welcome-hero__title">Save your progress</h1>
+                <p className="welcome-hero__subtitle">
+                  Create an account or sign up with Google to keep your rewards and profile synced.
+                </p>
+              </>
+            ) : !shouldShowNameInput ? (
               <>
                 <p className="welcome-hero__eyebrow">Welcome</p>
                 <h1 className="welcome-hero__title">{displayName || PLACEHOLDER_DISPLAY_NAME}</h1>
@@ -177,21 +187,55 @@ export function WelcomeScreen({
 
               <div className="welcome-email-hint">
                 <p>
-                  Already have an account?{' '}
+                  Need to register another profile?{' '}
                   <button
                     type="button"
                     className="welcome-email-hint__trigger"
                     data-testid="welcome-open-auth-page"
-                    onClick={onOpenAuth}
+                    onClick={onOpenCreateAccount}
                   >
-                    Sign in or create account
+                    Create account
                   </button>
                 </p>
               </div>
             </section>
           ) : null}
 
-          {!shouldShowNameInput ? (
+          {shouldShowCreateAccountActions ? (
+            <div className="welcome-panel" data-testid="session-persistence-indicator">
+              <div className="welcome-panel__header">
+                <div>
+                  <p className="welcome-panel__label">Account Setup</p>
+                  <h2>Get started</h2>
+                </div>
+              </div>
+
+              <div className="welcome-name-form">
+                <Button
+                  type="button"
+                  data-testid="welcome-open-auth-page"
+                  onClick={onOpenCreateAccount}
+                  fullWidth
+                  className="welcome-cta"
+                >
+                  Create account
+                </Button>
+
+                <Button
+                  type="button"
+                  data-testid="welcome-google-sign-up"
+                  variant="secondary"
+                  onClick={() => void onSignUpWithGoogle()}
+                  fullWidth
+                  className="welcome-cta"
+                >
+                  Sign up with Google
+                </Button>
+              </div>
+            </div>
+          ) : null}
+
+          {shouldShowContinue ? (
             <Button
               type="button"
               data-testid="continue-to-games"
