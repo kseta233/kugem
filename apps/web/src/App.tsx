@@ -146,6 +146,7 @@ function App() {
     refresh,
     signOutAndRestart,
     updateDisplayName,
+    updateAvatarIcon,
     signInWithEmail,
     signUpWithEmail,
     signInWithGoogle,
@@ -825,6 +826,7 @@ function App() {
             onBackToHome={onBackToHome}
             onRefresh={refresh}
             onSignOut={onSignOut}
+            onUpdateAvatar={updateAvatarIcon}
           />
         ) : route.name === 'share' ? (
           <ShareScreen
@@ -1118,10 +1120,8 @@ function App() {
 
       <RegisterPromptModal
         open={registerPromptOpen}
-        loading={loading}
         error={error}
         onClose={() => setRegisterPromptOpen(false)}
-        onGoogleAuth={onAuthGoogle}
         onOpenAuthPage={() => {
           setRegisterPromptOpen(false)
           setAppPhase('main')

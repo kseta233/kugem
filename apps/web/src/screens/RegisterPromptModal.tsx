@@ -3,19 +3,15 @@ import { Button, Card, Icon } from '@/shared/components'
 
 type RegisterPromptModalProps = {
   open: boolean
-  loading: boolean
   error: string | null
   onClose: () => void
-  onGoogleAuth: () => Promise<void>
   onOpenAuthPage: () => void
 }
 
 export function RegisterPromptModal({
   open,
-  loading,
   error,
   onClose,
-  onGoogleAuth,
   onOpenAuthPage,
 }: RegisterPromptModalProps) {
   useEffect(() => {
@@ -58,18 +54,8 @@ export function RegisterPromptModal({
         {error ? <p className="inline-error">{error}</p> : null}
 
         <div className="register-prompt-modal__actions">
-          <Button
-            type="button"
-            fullWidth
-            disabled={loading}
-            data-testid="register-with-google"
-            onClick={() => void onGoogleAuth()}
-          >
-            {loading ? 'Opening Google...' : 'Register with Google'}
-          </Button>
-
-          <Button type="button" variant="secondary" fullWidth onClick={onOpenAuthPage}>
-            Open register page
+          <Button type="button" fullWidth data-testid="register-now" onClick={onOpenAuthPage}>
+            Register now
           </Button>
 
           <Button type="button" variant="ghost" fullWidth onClick={onClose}>

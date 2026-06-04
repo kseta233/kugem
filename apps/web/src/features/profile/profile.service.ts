@@ -1,6 +1,11 @@
 import { supabase } from '@/lib/supabase'
 import type { Profile, UpsertProfileInput } from '@/types/profile'
 
+type DeleteAccountInput = {
+  email: string
+  acceptedTerms: boolean
+}
+
 export const upsertProfile = async (input: UpsertProfileInput): Promise<void> => {
   const { error } = await supabase.from('profiles').upsert(input)
   if (error) {
@@ -42,4 +47,14 @@ export const updateProfile = async (
   }
 
   return data
+}
+
+export const deleteMyAccount = async (input: DeleteAccountInput): Promise<void> => {
+  const { error } = await supabase.functions.invoke('delete_account', {
+    body: input,
+  })
+
+  if (error) {
+    throw error
+  }
 }

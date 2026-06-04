@@ -22,12 +22,39 @@ type UseAnonymousAuthResult = {
   refresh: () => Promise<void>
   signOutAndRestart: () => Promise<void>
   updateDisplayName: (displayName: string) => Promise<void>
+  updateAvatarIcon: (iconKey: string) => Promise<void>
   signInWithEmail: (email: string, password: string) => Promise<void>
   signUpWithEmail: (displayName: string, email: string, password: string) => Promise<void>
   signInWithGoogle: () => Promise<void>
 }
 
 const DEFAULT_DISPLAY_NAME = 'Guest'
+
+const mapProfileWriteError = (error: unknown): Error => {
+  const messageText =
+    typeof error === 'object' && error !== null && 'message' in error
+      ? String((error as { message?: string }).message)
+      : ''
+
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    String((error as { code?: string }).code) === '23505'
+  ) {
+    return new Error('Display name already taken. Please choose another one.')
+  }
+
+  if (messageText.includes('DISPLAY_NAME_IMMUTABLE_AFTER_REGISTRATION')) {
+    return new Error('Display name cannot be changed after registration.')
+  }
+
+  if (messageText.includes('DISPLAY_NAME_REQUIRED_FOR_REGISTERED')) {
+    return new Error('Display name is required for registered accounts.')
+  }
+
+  return error instanceof Error ? error : new Error('Unable to save profile.')
+}
 
 const resolveUserStatus = (user: User): UserAppStatus => (user.is_anonymous ? 'unregistered' : 'registered')
 
@@ -132,7 +159,12 @@ export const useAnonymousAuth = (): UseAnonymousAuthResult => {
   }, [bootstrap])
 
   const signOutAndRestart = useCallback(async () => {
-    await signOut()
+    try {
+      await signOut()
+    } catch {
+      // After account deletion, sign-out may fail because the auth user no longer exists.
+      // Continue bootstrap to recover into a fresh anonymous session.
+    }
     await bootstrap()
   }, [bootstrap])
 
@@ -165,9 +197,10 @@ export const useAnonymousAuth = (): UseAnonymousAuthResult => {
         setSessionSource('new')
         await syncProfile(authedUser, displayName)
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Email sign-up failed'
+        const mappedError = mapProfileWriteError(err)
+        const message = mappedError.message || 'Email sign-up failed'
         setError(message)
-        throw err
+        throw mappedError
       } finally {
         setLoading(false)
       }
@@ -196,8 +229,34 @@ export const useAnonymousAuth = (): UseAnonymousAuthResult => {
         throw new Error('User not authenticated')
       }
 
+      if (profile?.app_status === 'registered') {
+        throw new Error('Display name cannot be changed after registration.')
+      }
+
+      const nextDisplayName = displayName.trim() || DEFAULT_DISPLAY_NAME
+
+      let updated
+      try {
+        updated = await updateProfile(user.id, {
+          display_name: nextDisplayName,
+        })
+      } catch (error) {
+        throw mapProfileWriteError(error)
+      }
+
+      setProfile(updated)
+    },
+    [profile?.app_status, user],
+  )
+
+  const updateAvatarIcon = useCallback(
+    async (iconKey: string) => {
+      if (!user) {
+        throw new Error('User not authenticated')
+      }
+
       const updated = await updateProfile(user.id, {
-        display_name: displayName.trim() || DEFAULT_DISPLAY_NAME,
+        avatar_url: iconKey,
       })
 
       setProfile(updated)
@@ -214,6 +273,7 @@ export const useAnonymousAuth = (): UseAnonymousAuthResult => {
     refresh,
     signOutAndRestart,
     updateDisplayName,
+    updateAvatarIcon,
     signInWithEmail: signInWithEmailCredentials,
     signUpWithEmail: signUpWithEmailCredentials,
     signInWithGoogle: signInWithGoogleCredentials,

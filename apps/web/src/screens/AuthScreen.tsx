@@ -143,6 +143,9 @@ export function AuthScreen({ loading, error, onBack, onGoogleAuth, onSignIn, onS
                 maxLength={32}
                 required
               />
+              <small className="auth-field-help">
+                Must be unique and cannot be changed after registration.
+              </small>
             </label>
           ) : null}
 
