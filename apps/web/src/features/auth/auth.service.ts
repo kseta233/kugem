@@ -77,11 +77,6 @@ export const resetClientAppState = async (): Promise<void> => {
 }
 
 const getGoogleAuthRedirectTo = (): string => {
-  const configuredRedirect = import.meta.env.VITE_AUTH_REDIRECT_URL
-  if (typeof configuredRedirect === 'string' && configuredRedirect.trim().length > 0) {
-    return configuredRedirect.trim()
-  }
-
   if (typeof window === 'undefined') {
     return 'http://localhost:5173/auth'
   }
