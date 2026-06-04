@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Button, Card } from '@/shared/components'
+import { Button, Card, Icon } from '@/shared/components'
 import { useYinYangSamuraiGame } from '@/features/games/yinyang-samurai/hooks/useYinYangSamuraiGame'
 import type { YinYangSamuraiResult } from '@/features/games/yinyang-samurai/types/yinyangSamurai.types'
 
@@ -141,12 +141,21 @@ export const YinYangSamuraiGame = ({
           </section>
 
           <div className="yys-intro__actions">
-            <Button fullWidth data-testid="yys-start-button" disabled={starting} onClick={() => void handleStart()}>
-              {starting ? 'Starting...' : 'Start Game'}
-            </Button>
-            <div className="yys-intro__actions-icon" aria-hidden="true">
-              ►
-            </div>
+            <Button
+              fullWidth
+              data-testid="yys-start-button"
+              disabled={starting}
+              onClick={() => void handleStart()}
+              title={starting ? 'Starting...' : 'Start Game'}
+              leftIcon={
+                starting ? (
+                  <Icon name="hourglass" size={18} className="app-icon" />
+                ) : (
+                  <Icon name="play" size={18} className="app-icon" />
+                )
+              }
+              rightIcon={!starting ? <Icon name="arrow-right" size={18} className="app-icon" /> : null}
+            />
           </div>
         </Card>
       ) : null}

@@ -60,6 +60,28 @@ const clearLocalAppStorage = (): void => {
   }
 }
 
+const getGoogleAuthRedirectTo = (): string => {
+  if (typeof window === 'undefined') {
+    return 'http://localhost:5173/auth'
+  }
+
+  return `${window.location.origin}/auth`
+}
+
+const openOAuthPopup = (url: string): void => {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  const popup = window.open(url, 'miniplay-google-auth', 'popup=yes,width=480,height=720')
+  if (popup) {
+    popup.focus()
+    return
+  }
+
+  window.location.assign(url)
+}
+
 export const getCurrentUser = async (): Promise<User | null> => {
   const {
     data: { user },
@@ -122,6 +144,26 @@ export const signInWithEmail = async (email: string, password: string): Promise<
   clearLocalAnonymousUserId()
 
   return data.user
+}
+
+export const signInWithGoogle = async (): Promise<void> => {
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: getGoogleAuthRedirectTo(),
+      skipBrowserRedirect: true,
+    },
+  })
+
+  if (error) {
+    throw error
+  }
+
+  if (!data?.url) {
+    throw new Error('Google sign in URL unavailable')
+  }
+
+  openOAuthPopup(data.url)
 }
 
 export const signUpWithEmail = async (email: string, password: string): Promise<User> => {

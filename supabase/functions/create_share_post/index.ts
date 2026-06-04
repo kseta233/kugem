@@ -55,6 +55,20 @@ Deno.serve(async (req) => {
     return errorJson(404, 'SCORE_NOT_FOUND_OR_NOT_SHAREABLE')
   }
 
+  const { data: profile, error: profileError } = await adminClient
+    .from('profiles')
+    .select('app_status')
+    .eq('id', user.id)
+    .single<{ app_status: 'anonymous' | 'unregistered' | 'registered' | 'blocked' }>()
+
+  if (profileError) {
+    return errorJson(500, 'PROFILE_LOOKUP_FAILED', profileError.message)
+  }
+
+  if (profile?.app_status !== 'registered') {
+    return errorJson(403, 'REGISTRATION_REQUIRED')
+  }
+
   const appBaseUrl = Deno.env.get('APP_BASE_URL') ?? 'http://localhost:5173'
 
   for (let i = 0; i < 8; i += 1) {

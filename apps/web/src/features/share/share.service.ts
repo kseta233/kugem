@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { submitScore, type SubmitScoreResult } from '@/features/sessions/sessions.service'
 
 export type CreateSharePostInput = {
   scoreId: string
@@ -11,6 +12,16 @@ export type CreateSharePostResult = {
   shareSlug: string
   shareUrl: string
 }
+
+export type ShareGameResultInput = {
+  sessionId: string
+  score: number
+  durationMs: number
+  caption?: string
+  mediaUrl?: string
+}
+
+export type ShareGameResultResult = SubmitScoreResult & CreateSharePostResult
 
 export type PublicSharePost = {
   postId: string
@@ -44,6 +55,22 @@ export const createSharePost = async (
   }
 
   return data as CreateSharePostResult
+}
+
+export const shareGameResult = async (
+  input: ShareGameResultInput,
+): Promise<ShareGameResultResult> => {
+  const submitResult = await submitScore(input.sessionId, input.score, input.durationMs)
+  const shareResult = await createSharePost({
+    scoreId: submitResult.scoreId,
+    caption: input.caption,
+    mediaUrl: input.mediaUrl,
+  })
+
+  return {
+    ...submitResult,
+    ...shareResult,
+  }
 }
 
 export const getPublicSharePostBySlug = async (shareSlug: string): Promise<PublicSharePost | null> => {

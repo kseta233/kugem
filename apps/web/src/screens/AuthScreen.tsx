@@ -8,11 +8,12 @@ interface AuthScreenProps {
   loading: boolean
   error: string | null
   onBack: () => void
+  onGoogleAuth: () => Promise<void>
   onSignIn: (email: string, password: string) => Promise<void>
   onSignUp: (displayName: string, email: string, password: string) => Promise<void>
 }
 
-export function AuthScreen({ loading, error, onBack, onSignIn, onSignUp }: AuthScreenProps) {
+export function AuthScreen({ loading, error, onBack, onGoogleAuth, onSignIn, onSignUp }: AuthScreenProps) {
   const [mode, setMode] = useState<AuthMode>('signup')
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
@@ -109,6 +110,25 @@ export function AuthScreen({ loading, error, onBack, onSignIn, onSignUp }: AuthS
           </button>
         </div>
 
+        <div className="auth-social-block">
+          <Button
+            type="button"
+            fullWidth
+            variant="secondary"
+            className="auth-google-button"
+            disabled={submitting || loading}
+            data-testid="auth-google-button"
+            onClick={() => void onGoogleAuth()}
+          >
+            {submitting || loading
+              ? 'Opening Google...'
+              : isSignUp
+                ? 'Sign Up with Google'
+                : 'Sign In with Google'}
+          </Button>
+          <p className="auth-social-copy">Google sign in unlocks sharing and coin rewards.</p>
+        </div>
+
         <form className="auth-form" onSubmit={(event) => void onSubmit(event)}>
           {isSignUp ? (
             <label className="auth-field" htmlFor="auth-display-name">
@@ -123,6 +143,9 @@ export function AuthScreen({ loading, error, onBack, onSignIn, onSignUp }: AuthS
                 maxLength={32}
                 required
               />
+              <small className="auth-field-help">
+                Must be unique and cannot be changed after registration.
+              </small>
             </label>
           ) : null}
 

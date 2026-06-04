@@ -15,6 +15,14 @@ type ValidationResult = {
   reason: string | null
 }
 
+type LeaderboardRow = {
+  score_id: string
+  user_id: string
+  score: number
+  rank: number
+  achieved_at: string
+}
+
 const validateScore = (score: number, durationMs: number, config: GameConfig): ValidationResult => {
   if (!Number.isFinite(score) || !Number.isFinite(durationMs) || score < 0 || durationMs <= 0) {
     return { status: 'rejected', reason: 'INVALID_SCORE_OR_DURATION' }
@@ -166,9 +174,9 @@ Deno.serve(async (req) => {
 
   const { data: currentProfile, error: currentProfileError } = await adminClient
     .from('profiles')
-    .select('total_play_count')
+    .select('total_play_count, total_coin, app_status')
     .eq('id', user.id)
-    .single<{ total_play_count: number }>()
+    .single<{ total_play_count: number; total_coin: number; app_status: 'anonymous' | 'unregistered' | 'registered' | 'blocked' }>()
 
   if (currentProfileError || !currentProfile) {
     return errorJson(500, 'PROFILE_LOOKUP_FAILED', currentProfileError?.message)
@@ -183,75 +191,88 @@ Deno.serve(async (req) => {
     return errorJson(500, 'PROFILE_PLAYCOUNT_UPDATE_FAILED', playCountUpdateError.message)
   }
 
+  let enteredLeaderboard = false
+  let leaderboardRank: number | null = null
   let coinReward = 0
-  let totalCoin: number | null = null
 
   if (validation.status === 'valid') {
-    coinReward = Math.max(0, Number(game.config.rewardCoin ?? 0))
+    const { data: refreshedLeaderboard, error: leaderboardError } = await adminClient.rpc(
+      'refresh_game_leaderboard',
+      {
+        p_game_id: session.game_id,
+      },
+    )
 
-    if (coinReward > 0) {
-      const { data: profile, error: profileError } = await adminClient
-        .from('profiles')
-        .select('total_coin')
-        .eq('id', user.id)
-        .single<{ total_coin: number }>()
-
-      if (profileError || !profile) {
-        return errorJson(500, 'PROFILE_LOOKUP_FAILED', profileError?.message)
-      }
-
-      const nextTotalCoin = (profile.total_coin ?? 0) + coinReward
-
-      const { error: profileUpdateError } = await adminClient
-        .from('profiles')
-        .update({ total_coin: nextTotalCoin })
-        .eq('id', user.id)
-
-      if (profileUpdateError) {
-        return errorJson(500, 'PROFILE_COIN_UPDATE_FAILED', profileUpdateError.message)
-      }
-
-      const { error: ledgerError } = await adminClient.from('coin_ledger').insert({
-        user_id: user.id,
-        score_id: scoreRecord.id,
-        transaction_type: 'reward',
-        amount: coinReward,
-        balance_after: nextTotalCoin,
-        reason: 'VALID_SCORE_REWARD',
-        metadata: {
-          sessionId: session.id,
-          gameId: session.game_id,
-        },
-      })
-
-      if (ledgerError) {
-        return errorJson(500, 'COIN_LEDGER_INSERT_FAILED', ledgerError.message)
-      }
-
-      totalCoin = nextTotalCoin
-    } else {
-      const { data: profile } = await adminClient
-        .from('profiles')
-        .select('total_coin')
-        .eq('id', user.id)
-        .single<{ total_coin: number }>()
-
-      totalCoin = profile?.total_coin ?? 0
+    if (leaderboardError) {
+      return errorJson(500, 'LEADERBOARD_REFRESH_FAILED', leaderboardError.message)
     }
+
+    const leaderboardRows = (refreshedLeaderboard ?? []) as LeaderboardRow[]
+    const matchedEntry = leaderboardRows.find((entry) => entry.score_id === scoreRecord.id)
+
+    enteredLeaderboard = Boolean(matchedEntry)
+    leaderboardRank = matchedEntry?.rank ?? null
   }
 
-  const { count } = await adminClient
-    .from('scores')
-    .select('*', { count: 'exact', head: true })
-    .eq('game_id', session.game_id)
-    .eq('validation_status', 'valid')
-    .gt('score', score)
+  let totalCoin: number | null = null
+  const canReceiveCoinReward = currentProfile.app_status === 'registered'
+
+  if (validation.status === 'valid' && enteredLeaderboard && canReceiveCoinReward) {
+    coinReward = Math.max(0, Number(game.config.rewardCoin ?? 0))
+  }
+
+  const { data: profile, error: profileError } = await adminClient
+    .from('profiles')
+    .select('total_coin')
+    .eq('id', user.id)
+    .single<{ total_coin: number }>()
+
+  if (profileError || !profile) {
+    return errorJson(500, 'PROFILE_LOOKUP_FAILED', profileError?.message)
+  }
+
+  if (coinReward > 0) {
+    const nextTotalCoin = (profile.total_coin ?? 0) + coinReward
+
+    const { error: profileUpdateError } = await adminClient
+      .from('profiles')
+      .update({ total_coin: nextTotalCoin })
+      .eq('id', user.id)
+
+    if (profileUpdateError) {
+      return errorJson(500, 'PROFILE_COIN_UPDATE_FAILED', profileUpdateError.message)
+    }
+
+    const { error: ledgerError } = await adminClient.from('coin_ledger').insert({
+      user_id: user.id,
+      score_id: scoreRecord.id,
+      transaction_type: 'reward',
+      amount: coinReward,
+      balance_after: nextTotalCoin,
+      reason: 'LEADERBOARD_SHARE_REWARD',
+      metadata: {
+        sessionId: session.id,
+        gameId: session.game_id,
+        leaderboardRank,
+      },
+    })
+
+    if (ledgerError) {
+      return errorJson(500, 'COIN_LEDGER_INSERT_FAILED', ledgerError.message)
+    }
+
+    totalCoin = nextTotalCoin
+  } else {
+    totalCoin = profile.total_coin ?? 0
+  }
 
   return json(200, {
     scoreId: scoreRecord.id,
     validationStatus: validation.status,
+    enteredLeaderboard,
     coinReward,
     totalCoin,
-    rankHint: (count ?? 0) + 1,
+    leaderboardRank,
+    rankHint: leaderboardRank,
   })
 })
