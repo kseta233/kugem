@@ -1,11 +1,12 @@
 import type { FormEvent } from 'react'
 import { useEffect, useState } from 'react'
-import { Button, Card, CoinBadge, Icon } from '@/shared/components'
+import { Button, CoinBadge, Icon } from '@/shared/components'
+import type { SessionSource } from '@/features/auth/auth.service'
 import type { Profile } from '@/types/profile'
 
 interface Props {
   profile: Profile | null
-  sessionSource: 'restored' | 'new' | null
+  sessionSource: SessionSource | null
   isExiting: boolean
   savingDisplayName: boolean
   onSaveDisplayName: (displayName: string) => Promise<void>
@@ -35,7 +36,8 @@ export function WelcomeScreen({
 
   const displayName = profile?.display_name?.trim() ?? ''
   const hasSavedName = hasCustomDisplayName(displayName)
-  const isReturning = sessionSource === 'restored'
+  const isReturningUser = sessionSource === 'restored'
+  const shouldShowNameInput = !isReturningUser
 
   useEffect(() => {
     setNameInput(hasSavedName ? displayName : '')
@@ -49,6 +51,11 @@ export function WelcomeScreen({
     const trimmedName = nameInput.trim()
     if (!trimmedName) {
       setValidationError('Enter your display name to continue.')
+      return
+    }
+
+    if (profile?.app_status === 'registered' && trimmedName === displayName) {
+      onContinue()
       return
     }
 
@@ -94,17 +101,10 @@ export function WelcomeScreen({
               </div>
             </div>
 
-            {hasSavedName ? (
+            {!shouldShowNameInput ? (
               <>
-                <p className="welcome-hero__eyebrow">
-                  {isReturning ? 'Welcome back' : 'Ready to play'}
-                </p>
-                <h1 className="welcome-hero__title">{displayName}</h1>
-                <p className="welcome-hero__subtitle">
-                  {isReturning
-                    ? 'Your profile is loaded from this device and synced with MiniPlay.'
-                    : 'Your profile is ready. Jump back in and keep earning coins.'}
-                </p>
+                <p className="welcome-hero__eyebrow">Welcome</p>
+                <h1 className="welcome-hero__title">{displayName || PLACEHOLDER_DISPLAY_NAME}</h1>
               </>
             ) : (
               <>
@@ -117,22 +117,15 @@ export function WelcomeScreen({
             )}
           </section>
 
-          <Card className="welcome-panel" data-testid="session-persistence-indicator">
-            <div className="welcome-panel__header">
-              <div>
-                <p className="welcome-panel__label">Account</p>
-                <h2>{hasSavedName ? 'Profile ready' : 'Set up your profile'}</h2>
+          {shouldShowNameInput ? (
+            <section className="welcome-panel" data-testid="session-persistence-indicator">
+              <div className="welcome-panel__header">
+                <div>
+                  <p className="welcome-panel__label">First Time Setup</p>
+                  <h2>Set your display name</h2>
+                </div>
               </div>
-            </div>
 
-            {hasSavedName ? (
-              <div className="welcome-profile-summary">
-                <div className="welcome-profile-summary__name">{displayName}</div>
-                <p className="welcome-profile-summary__copy">
-                  This name is saved and will be used across your game activity.
-                </p>
-              </div>
-            ) : (
               <form className="welcome-name-form" onSubmit={(event) => void onSubmit(event)}>
                 <label className="welcome-name-form__label" htmlFor="welcome-display-name">
                   Display name
@@ -181,24 +174,24 @@ export function WelcomeScreen({
                   <Icon name="arrow-right" size={16} className="app-icon" />
                 </Button>
               </form>
-            )}
 
-            <div className="welcome-email-hint">
-              <p>
-                Already have an account?{' '}
-                <button
-                  type="button"
-                  className="welcome-email-hint__trigger"
-                  data-testid="welcome-open-auth-page"
-                  onClick={onOpenAuth}
-                >
-                  Sign in or create account
-                </button>
-              </p>
-            </div>
-          </Card>
+              <div className="welcome-email-hint">
+                <p>
+                  Already have an account?{' '}
+                  <button
+                    type="button"
+                    className="welcome-email-hint__trigger"
+                    data-testid="welcome-open-auth-page"
+                    onClick={onOpenAuth}
+                  >
+                    Sign in or create account
+                  </button>
+                </p>
+              </div>
+            </section>
+          ) : null}
 
-          {hasSavedName ? (
+          {!shouldShowNameInput ? (
             <Button
               type="button"
               data-testid="continue-to-games"

@@ -9,6 +9,7 @@ type YinYangSamuraiGameProps = {
   autoStart?: boolean
   showInstruction?: boolean
   onStartAttempt?: () => Promise<boolean> | boolean
+  onTryAgain?: () => void
 }
 
 const formatDuration = (durationMs: number): string => {
@@ -27,6 +28,7 @@ export const YinYangSamuraiGame = ({
   autoStart = false,
   showInstruction = true,
   onStartAttempt,
+  onTryAgain,
 }: YinYangSamuraiGameProps) => {
   const {
     gameState,
@@ -195,12 +197,28 @@ export const YinYangSamuraiGame = ({
           ) : null}
 
           {gameState === 'result' && lastResult ? (
-            <aside className="yys-result-toast" data-testid="yys-local-result">
-              <strong>{lastResult.isMissed ? 'Missed Cut' : `${lastResult.accuracy.toFixed(2)}%`}</strong>
-              <span>{lastResult.grade}</span>
-              <span>{formatDuration(lastResult.durationMs)}</span>
-              {submitting ? <small>Submitting score...</small> : null}
-            </aside>
+            <header className="yys-result-hud" data-testid="yys-local-result">
+              <button
+                type="button"
+                className="yys-result-hud__retry"
+                aria-label="Try again"
+                onClick={() => {
+                  if (onTryAgain) {
+                    onTryAgain()
+                    return
+                  }
+                  startGame()
+                }}
+              >
+                <Icon name="play" size={16} className="app-icon" />
+              </button>
+
+              <strong className="yys-result-hud__percentage">
+                {lastResult.isMissed ? '0.0%' : `${lastResult.accuracy.toFixed(2)}%`}
+              </strong>
+
+              {submitting ? <small>Submitting...</small> : <small aria-hidden="true" />}
+            </header>
           ) : null}
         </section>
       ) : null}
