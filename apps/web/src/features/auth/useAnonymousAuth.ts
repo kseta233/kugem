@@ -31,6 +31,11 @@ type UseAnonymousAuthResult = {
 
 const DEFAULT_DISPLAY_NAME = 'Guest'
 
+const hasCustomDisplayName = (value: string | null | undefined): boolean => {
+  const trimmed = value?.trim() ?? ''
+  return trimmed.length > 0 && trimmed.toLowerCase() !== DEFAULT_DISPLAY_NAME.toLowerCase()
+}
+
 const mapProfileWriteError = (error: unknown): Error => {
   const messageText =
     typeof error === 'object' && error !== null && 'message' in error
@@ -240,7 +245,8 @@ export const useAnonymousAuth = (): UseAnonymousAuthResult => {
         throw new Error('User not authenticated')
       }
 
-      if (profile?.app_status === 'registered') {
+      const alreadyHasName = hasCustomDisplayName(profile?.display_name)
+      if (profile?.app_status === 'registered' && alreadyHasName) {
         throw new Error('Display name cannot be changed after registration.')
       }
 
