@@ -1,7 +1,7 @@
 import type { User } from '@supabase/supabase-js'
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { deleteMyAccount } from '@/features/profile/profile.service'
-import { Button, Card, Icon, Page } from '@/shared/components'
+import { Button, Card, CoinBadge, Icon, Page } from '@/shared/components'
 import type { Profile } from '@/types/profile'
 
 const avatarOptions = ['icon:gamepad', 'icon:puzzle', 'icon:tap', 'icon:coin', 'icon:lock'] as const
@@ -28,8 +28,9 @@ interface ProfileScreenProps {
   loading: boolean
   error: string | null
   onBackToHome: () => void
+  onOpenCoinLedger: () => void
   onRefresh: () => Promise<void>
-  onSignOut: () => Promise<void>
+  onDeleteAccountSuccess: () => Promise<void>
   onUpdateAvatar: (iconKey: string) => Promise<void>
 }
 
@@ -57,7 +58,7 @@ function SettingsCard({ children, className = '' }: SettingsCardProps) {
 }
 
 interface SettingsRowProps {
-  icon: 'trash' | 'help' | 'support'
+  icon: 'trash' | 'help' | 'support' | 'coin'
   label: string
   onClick: () => void
   danger?: boolean
@@ -310,8 +311,9 @@ export function ProfileScreen({
   loading,
   error,
   onBackToHome,
+  onOpenCoinLedger,
   onRefresh,
-  onSignOut,
+  onDeleteAccountSuccess,
   onUpdateAvatar,
 }: ProfileScreenProps) {
   const hasProfile = Boolean(profile)
@@ -347,7 +349,7 @@ export function ProfileScreen({
         acceptedTerms: true,
       })
       setDeleteFlowOpen(false)
-      await onSignOut()
+      await onDeleteAccountSuccess()
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to delete account right now.'
       setDeleteError(message)
@@ -388,6 +390,7 @@ export function ProfileScreen({
           <Icon name="arrow-left" size={20} className="app-icon" />
         </button>
       }
+      trailing={<CoinBadge testId="profile-coin-badge-settings" value={profile?.total_coin ?? 0} />}
     >
       <div className="settings-content">
         {loading ? (
@@ -461,6 +464,9 @@ export function ProfileScreen({
 
             <SettingsSection title="COIN">
               <WalletBalanceCard coin={profile?.total_coin ?? 0} />
+              <SettingsCard>
+                <SettingsRow icon="coin" label="See History" onClick={onOpenCoinLedger} />
+              </SettingsCard>
             </SettingsSection>
 
             <SettingsSection title="SUPPORT">

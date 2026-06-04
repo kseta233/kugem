@@ -5,6 +5,10 @@ export type GameConfig = {
   maxScore?: number
   maxScorePerSecond?: number
   rewardCoin?: number
+  baseRewardCoin?: number
+  leaderboardBonusCoin?: number
+  dailyBaseRewardCap?: number
+  category?: string
   leaderboardEnabled?: boolean
   shareEnabled?: boolean
 }

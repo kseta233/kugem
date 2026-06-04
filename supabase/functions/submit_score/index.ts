@@ -6,6 +6,10 @@ type GameConfig = {
   maxScore?: number
   maxScorePerSecond?: number
   rewardCoin?: number
+  baseRewardCoin?: number
+  leaderboardBonusCoin?: number
+  dailyBaseRewardCap?: number
+  category?: string
 }
 
 type ValidationStatus = 'valid' | 'suspicious' | 'rejected'
@@ -21,6 +25,15 @@ type LeaderboardRow = {
   score: number
   rank: number
   achieved_at: string
+}
+
+type CoinLedgerRow = {
+  amount: number
+  reason: string | null
+  metadata: {
+    gameSlug?: string
+    baseReward?: number
+  } | null
 }
 
 const validateScore = (score: number, durationMs: number, config: GameConfig): ValidationResult => {
@@ -108,9 +121,9 @@ Deno.serve(async (req) => {
 
   const { data: game, error: gameError } = await adminClient
     .from('games')
-    .select('id, config, version')
+    .select('id, slug, config, version')
     .eq('id', session.game_id)
-    .maybeSingle<{ id: string; config: GameConfig; version: number }>()
+    .maybeSingle<{ id: string; slug: string; config: GameConfig; version: number }>()
 
   if (gameError) {
     return errorJson(500, 'GAME_LOOKUP_FAILED', gameError.message)
@@ -216,8 +229,52 @@ Deno.serve(async (req) => {
 
   let totalCoin: number | null = null
   const canReceiveCoinReward = currentProfile.app_status === 'registered'
+  const isYinYangSamurai = game.slug === 'yinyang-samurai'
 
-  if (validation.status === 'valid' && enteredLeaderboard && canReceiveCoinReward) {
+  if (validation.status === 'valid' && canReceiveCoinReward && isYinYangSamurai) {
+    const dailyBaseRewardCap = Math.max(0, Math.floor(Number(game.config.dailyBaseRewardCap ?? 5)))
+    const baseRewardCoin = Math.max(0, Math.floor(Number(game.config.baseRewardCoin ?? 1)))
+    const leaderboardBonusCoin = Math.max(0, Math.floor(Number(game.config.leaderboardBonusCoin ?? 10)))
+    const now = new Date()
+    const startOfUtcDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+    const endOfUtcDay = new Date(startOfUtcDay.getTime() + 24 * 60 * 60 * 1000)
+
+    const { data: todayRewards, error: todayRewardsError } = await adminClient
+      .from('coin_ledger')
+      .select('amount, reason, metadata')
+      .eq('user_id', user.id)
+      .eq('transaction_type', 'reward')
+      .gte('created_at', startOfUtcDay.toISOString())
+      .lt('created_at', endOfUtcDay.toISOString())
+      .returns<CoinLedgerRow[]>()
+
+    if (todayRewardsError) {
+      return errorJson(500, 'COIN_LEDGER_LOOKUP_FAILED', todayRewardsError.message)
+    }
+
+    const claimedBaseToday = (todayRewards ?? []).reduce((sum, row) => {
+      const metadata = row.metadata ?? {}
+      const fromYinYang = metadata.gameSlug === 'yinyang-samurai'
+      if (!fromYinYang) {
+        return sum
+      }
+
+      if (typeof metadata.baseReward === 'number' && Number.isFinite(metadata.baseReward) && metadata.baseReward > 0) {
+        return sum + Math.floor(metadata.baseReward)
+      }
+
+      if (row.reason === 'VALID_SCORE_REWARD' || row.reason === 'LEADERBOARD_ENTRY_REWARD') {
+        return sum + 1
+      }
+
+      return sum
+    }, 0)
+
+    const canClaimBaseReward = claimedBaseToday < dailyBaseRewardCap
+    const baseReward = canClaimBaseReward ? baseRewardCoin : 0
+    const leaderboardBonus = enteredLeaderboard ? leaderboardBonusCoin : 0
+    coinReward = baseReward + leaderboardBonus
+  } else if (validation.status === 'valid' && enteredLeaderboard && canReceiveCoinReward) {
     coinReward = Math.max(0, Number(game.config.rewardCoin ?? 0))
   }
 
@@ -249,11 +306,16 @@ Deno.serve(async (req) => {
       transaction_type: 'reward',
       amount: coinReward,
       balance_after: nextTotalCoin,
-      reason: 'LEADERBOARD_SHARE_REWARD',
+      reason: enteredLeaderboard ? 'LEADERBOARD_ENTRY_REWARD' : 'VALID_SCORE_REWARD',
       metadata: {
         sessionId: session.id,
         gameId: session.game_id,
+        gameSlug: game.slug,
         leaderboardRank,
+        baseReward: isYinYangSamurai ? Math.max(0, Math.floor(Number(game.config.baseRewardCoin ?? 1))) : 0,
+        leaderboardBonus: isYinYangSamurai && enteredLeaderboard
+          ? Math.max(0, Math.floor(Number(game.config.leaderboardBonusCoin ?? 10)))
+          : 0,
       },
     })
 

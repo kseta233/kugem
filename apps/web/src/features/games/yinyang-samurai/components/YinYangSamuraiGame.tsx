@@ -8,8 +8,9 @@ type YinYangSamuraiGameProps = {
   submitting?: boolean
   autoStart?: boolean
   showInstruction?: boolean
+  introCoinReward?: number
   onStartAttempt?: () => Promise<boolean> | boolean
-  onTryAgain?: () => void
+  onTryAgain?: () => Promise<boolean> | boolean
 }
 
 const formatDuration = (durationMs: number): string => {
@@ -27,6 +28,7 @@ export const YinYangSamuraiGame = ({
   submitting = false,
   autoStart = false,
   showInstruction = true,
+  introCoinReward = 1,
   onStartAttempt,
   onTryAgain,
 }: YinYangSamuraiGameProps) => {
@@ -119,7 +121,10 @@ export const YinYangSamuraiGame = ({
         <Card className="yys-intro" data-testid="yys-instruction-screen">
           <div className="yys-intro__hero slash-animation" aria-hidden="true">
             <div className="yys-intro__hero-back">←</div>
-            <div className="yys-intro__hero-badge">$ 50 Coins</div>
+            <div className="yys-intro__hero-badge">
+              <Icon name="coin" size={16} className="app-icon app-icon--coin" />
+              <strong>{introCoinReward}</strong>
+            </div>
             <div className="yys-intro__hero-icon">
               <div className="yys-intro__graphic-yinyang" />
             </div>
@@ -203,14 +208,13 @@ export const YinYangSamuraiGame = ({
                 className="yys-result-hud__retry"
                 aria-label="Try again"
                 onClick={() => {
-                  if (onTryAgain) {
-                    onTryAgain()
-                    return
-                  }
                   startGame()
+                  if (onTryAgain) {
+                    void onTryAgain()
+                  }
                 }}
               >
-                <Icon name="play" size={16} className="app-icon" />
+                <Icon name="refresh" size={16} className="app-icon" />
               </button>
 
               <strong className="yys-result-hud__percentage">

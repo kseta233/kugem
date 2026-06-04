@@ -14,7 +14,11 @@ insert into public.games (
   1,
   '{
     "maxScore": 1000,
-    "rewardCoin": 8,
+    "rewardCoin": 1,
+    "baseRewardCoin": 1,
+    "leaderboardBonusCoin": 10,
+    "dailyBaseRewardCap": 5,
+    "category": "casual",
     "leaderboardEnabled": true,
     "shareEnabled": true
   }'::jsonb

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { createSharePost, shareGameResult, type CreateSharePostResult } from '@/features/share/share.service'
 import type { SubmitScoreResult } from '@/features/sessions/sessions.service'
 import type { YinYangSamuraiResult as YinYangSamuraiPlayResult } from '@/features/games/yinyang-samurai/types/yinyangSamurai.types'
@@ -25,6 +25,7 @@ export function useYinYangFlow({
   onLoadLeaderboard,
   onStartSession,
 }: UseYinYangFlowParams) {
+  const RESULT_POPUP_DELAY_MS = 550
   const [yinYangPlayResult, setYinYangPlayResult] = useState<YinYangSamuraiPlayResult | null>(null)
   const [isYinYangResultOpen, setIsYinYangResultOpen] = useState(false)
   const [submittedScore, setSubmittedScore] = useState<number | null>(null)
@@ -34,8 +35,17 @@ export function useYinYangFlow({
   const [shareError, setShareError] = useState<string | null>(null)
   const [shareLoading, setShareLoading] = useState(false)
   const [nativeShareStatus, setNativeShareStatus] = useState<string | null>(null)
+  const openPopupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const clearPopupDelay = useCallback(() => {
+    if (openPopupTimeoutRef.current) {
+      clearTimeout(openPopupTimeoutRef.current)
+      openPopupTimeoutRef.current = null
+    }
+  }, [])
 
   const reset = useCallback(() => {
+    clearPopupDelay()
     setYinYangPlayResult(null)
     setIsYinYangResultOpen(false)
     setSubmittedScore(null)
@@ -44,7 +54,13 @@ export function useYinYangFlow({
     setShareResult(null)
     setShareError(null)
     setNativeShareStatus(null)
-  }, [])
+  }, [clearPopupDelay])
+
+  useEffect(() => {
+    return () => {
+      clearPopupDelay()
+    }
+  }, [clearPopupDelay])
 
   const onFinishPlay = useCallback(
     (result: YinYangSamuraiPlayResult) => {
@@ -57,13 +73,17 @@ export function useYinYangFlow({
       setSubmitResult(null)
       setPlayDurationMs(result.durationMs)
       setYinYangPlayResult(result)
-      setIsYinYangResultOpen(true)
+      setIsYinYangResultOpen(false)
+      clearPopupDelay()
+      openPopupTimeoutRef.current = setTimeout(() => {
+        setIsYinYangResultOpen(true)
+      }, RESULT_POPUP_DELAY_MS)
 
       if (currentGameId) {
         onLoadLeaderboard(currentGameId)
       }
     },
-    [currentGameId, onLoadLeaderboard, selectedGame?.config.maxScore],
+    [RESULT_POPUP_DELAY_MS, clearPopupDelay, currentGameId, onLoadLeaderboard, selectedGame?.config.maxScore],
   )
 
   const ensureShareLink = useCallback(async (): Promise<string | null> => {
@@ -172,13 +192,13 @@ export function useYinYangFlow({
           text,
           url: shareUrl,
         })
-        setNativeShareStatus('Shared successfully.')
+        setNativeShareStatus('Shared successfully. Great slash!')
         return
       }
     } catch (err) {
       const isAbortError = err instanceof DOMException && err.name === 'AbortError'
       if (isAbortError) {
-        setNativeShareStatus('Share cancelled.')
+        setNativeShareStatus('No worries, your share link is ready below.')
         return
       }
     }
@@ -186,19 +206,19 @@ export function useYinYangFlow({
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       try {
         await navigator.clipboard.writeText(`${text}\n${shareUrl}`)
-        setNativeShareStatus('Share text copied to clipboard.')
+        setNativeShareStatus('Share text copied. Paste it anywhere.')
       } catch {
-        setNativeShareStatus('Unable to share automatically. Copy the share URL manually.')
+        setNativeShareStatus('Link is ready below. You can copy it manually.')
       }
       return
     }
 
-    setNativeShareStatus('Sharing is not supported in this browser.')
+    setNativeShareStatus('Sharing is not supported here yet. Your link is ready below.')
   }, [ensureShareLink, selectedGame, yinYangPlayResult])
 
-  const onPlayAgain = useCallback(() => {
+  const onPlayAgain = useCallback(async (): Promise<boolean> => {
     reset()
-    void onStartSession()
+    return onStartSession()
   }, [onStartSession, reset])
 
   return {

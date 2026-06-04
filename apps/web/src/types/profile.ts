@@ -17,3 +17,15 @@ export type UpsertProfileInput = {
   display_name: string
   app_status: UserAppStatus
 }
+
+export type CoinLedgerEntry = {
+  id: string
+  user_id: string
+  score_id: string | null
+  transaction_type: 'reward' | 'adjustment' | 'spend' | 'refund'
+  amount: number
+  balance_after: number
+  reason: string | null
+  metadata: Record<string, unknown> | null
+  created_at: string
+}

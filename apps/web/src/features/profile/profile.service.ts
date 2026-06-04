@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import type { Profile, UpsertProfileInput } from '@/types/profile'
+import type { CoinLedgerEntry, Profile, UpsertProfileInput } from '@/types/profile'
 
 type DeleteAccountInput = {
   email: string
@@ -57,4 +57,18 @@ export const deleteMyAccount = async (input: DeleteAccountInput): Promise<void> 
   if (error) {
     throw error
   }
+}
+
+export const getCoinLedger = async (limit = 30): Promise<CoinLedgerEntry[]> => {
+  const { data, error } = await supabase
+    .from('coin_ledger')
+    .select('id, user_id, score_id, transaction_type, amount, balance_after, reason, metadata, created_at')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+
+  if (error) {
+    throw error
+  }
+
+  return (data ?? []) as CoinLedgerEntry[]
 }

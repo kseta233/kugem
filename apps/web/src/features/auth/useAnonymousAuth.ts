@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import {
+  resetClientAppState,
   signInAnonymously,
   signInWithEmail,
   signInWithGoogle,
@@ -20,7 +21,7 @@ type UseAnonymousAuthResult = {
   loading: boolean
   error: string | null
   refresh: () => Promise<void>
-  signOutAndRestart: () => Promise<void>
+  signOutAndRestart: (options?: { clearClientState?: boolean; hardReload?: boolean }) => Promise<void>
   updateDisplayName: (displayName: string) => Promise<void>
   updateAvatarIcon: (iconKey: string) => Promise<void>
   signInWithEmail: (email: string, password: string) => Promise<void>
@@ -158,13 +159,23 @@ export const useAnonymousAuth = (): UseAnonymousAuthResult => {
     await bootstrap()
   }, [bootstrap])
 
-  const signOutAndRestart = useCallback(async () => {
+  const signOutAndRestart = useCallback(async (options?: { clearClientState?: boolean; hardReload?: boolean }) => {
     try {
       await signOut()
     } catch {
       // After account deletion, sign-out may fail because the auth user no longer exists.
       // Continue bootstrap to recover into a fresh anonymous session.
     }
+
+    if (options?.clearClientState) {
+      await resetClientAppState()
+    }
+
+    if (options?.hardReload && typeof window !== 'undefined') {
+      window.location.replace('/')
+      return
+    }
+
     await bootstrap()
   }, [bootstrap])
 

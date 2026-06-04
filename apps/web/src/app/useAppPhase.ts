@@ -4,7 +4,7 @@ type AppPhase = 'splash' | 'splash-exiting' | 'welcome' | 'welcome-exiting' | 'm
 
 interface UseAppPhaseParams {
   loading: boolean
-  routeName: 'home' | 'profile' | 'auth' | 'yinyang-intro' | 'yinyang-play' | 'share'
+  routeName: 'home' | 'profile' | 'coin-ledger' | 'auth' | 'yinyang-intro' | 'yinyang-play' | 'share'
 }
 
 export function useAppPhase({ loading, routeName }: UseAppPhaseParams) {
@@ -24,6 +24,7 @@ export function useAppPhase({ loading, routeName }: UseAppPhaseParams) {
         () =>
           setAppPhase(
             routeName === 'share' ||
+              routeName === 'coin-ledger' ||
               routeName === 'auth' ||
               routeName === 'yinyang-intro' ||
               routeName === 'yinyang-play'

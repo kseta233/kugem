@@ -1,4 +1,5 @@
-import { Button } from '@/shared/components'
+import { useState } from 'react'
+import { Button, Icon } from '@/shared/components'
 import type { SubmitScoreResult } from '@/features/sessions/sessions.service'
 import type { YinYangSamuraiResult as YinYangSamuraiPlayResult } from '@/features/games/yinyang-samurai/types/yinyangSamurai.types'
 import type { LeaderboardItem } from '@/types/leaderboard'
@@ -45,11 +46,31 @@ export const YinYangSamuraiResult = ({
   leaderboard,
 }: YinYangSamuraiResultProps) => {
   const topPlayers = leaderboard.slice(0, 3)
+  const [copyStatus, setCopyStatus] = useState<string | null>(null)
+
+  const handleCopyLink = async () => {
+    if (!shareUrl) {
+      return
+    }
+
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(shareUrl)
+        setCopyStatus('Copied!')
+        return
+      } catch {
+        setCopyStatus('Copy failed, please copy manually.')
+        return
+      }
+    }
+
+    setCopyStatus('Clipboard is not available on this device.')
+  }
 
   return (
     <section className="yys-result-card" data-testid="yinyang-samurai-result-screen">
-      <button type="button" className="yys-result-card__close" onClick={onClosePopup}>
-        Close
+      <button type="button" className="yys-result-card__close" aria-label="Close result popup" onClick={onClosePopup}>
+        <Icon name="x" size={18} className="app-icon" />
       </button>
 
       <h3>{getHeadline(result)}</h3>
@@ -80,22 +101,25 @@ export const YinYangSamuraiResult = ({
         </div>
       </section>
 
-      {submitResult?.validationStatus ? (
-        <p className="yys-result-card__meta">Validation: {submitResult.validationStatus}</p>
-      ) : null}
       {!submitResult ? <p className="yys-result-card__meta">Share to save this result to cloud.</p> : null}
-      {submitResult && !submitResult.enteredLeaderboard ? (
-        <p className="yys-result-card__meta">Result saved, but it did not enter the top 3 leaderboard.</p>
-      ) : null}
       {submitResult?.enteredLeaderboard && submitResult.leaderboardRank ? (
         <p className="yys-result-card__meta">Leaderboard rank: #{submitResult.leaderboardRank}</p>
       ) : null}
       {shareError ? <p className="inline-error">{shareError}</p> : null}
       {nativeShareStatus ? <p className="yys-result-card__meta">{nativeShareStatus}</p> : null}
       {shareUrl ? (
-        <p className="yys-result-card__meta">
-          Share URL: <a href={shareUrl} target="_blank" rel="noreferrer">{shareUrl}</a>
-        </p>
+        <section className="yys-result-card__share" aria-label="Share link">
+          <p className="yys-result-card__share-title">Yaay your record is saved, here is the link</p>
+          <div className="yys-result-card__share-row">
+            <a className="yys-result-card__share-link" href={shareUrl} target="_blank" rel="noreferrer">
+              {shareUrl}
+            </a>
+            <Button variant="secondary" onClick={() => void handleCopyLink()}>
+              Copy
+            </Button>
+          </div>
+          {copyStatus ? <p className="yys-result-card__meta">{copyStatus}</p> : null}
+        </section>
       ) : null}
 
       <div className="yys-result-card__actions">

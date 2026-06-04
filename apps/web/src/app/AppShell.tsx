@@ -16,6 +16,7 @@ import { getPublicSharePostBySlug, type PublicSharePost } from '@/features/share
 import { YinYangSamuraiScreen } from '@/features/yinyang-samurai/YinYangSamuraiScreen'
 import type { HomeCategory } from '@/shared/components'
 import { AuthScreen } from '@/screens/AuthScreen'
+import { CoinLedgerScreen } from '@/screens/CoinLedgerScreen'
 import { HomeScreen } from '@/screens/HomeScreen'
 import { ProfileScreen } from '@/screens/ProfileScreen'
 import { RegisterPromptModal } from '@/screens/RegisterPromptModal'
@@ -231,11 +232,14 @@ export function AppShell() {
     setScreen('play')
   }, [games, route.name])
 
-  const onSignOut = async () => {
+  const onDeleteAccountSuccess = async () => {
     setScreen('catalog')
     navigateToRoute({ name: 'home' })
     setAppPhase('splash')
-    await signOutAndRestart()
+    await signOutAndRestart({
+      clearClientState: true,
+      hardReload: true,
+    })
   }
 
   const resetResultState = () => {
@@ -400,6 +404,14 @@ export function AppShell() {
     navigateToRoute({ name: 'home' })
   }
 
+  const onOpenCoinLedger = () => {
+    navigateToRoute({ name: 'coin-ledger' })
+  }
+
+  const onBackToProfile = () => {
+    navigateToRoute({ name: 'profile' })
+  }
+
   const onCloseYinYang = () => {
     setScreen('catalog')
     setSessionError(null)
@@ -428,9 +440,18 @@ export function AppShell() {
             loading={loading}
             error={error}
             onBackToHome={onBackToHome}
+            onOpenCoinLedger={onOpenCoinLedger}
             onRefresh={refresh}
-            onSignOut={onSignOut}
+            onDeleteAccountSuccess={onDeleteAccountSuccess}
             onUpdateAvatar={updateAvatarIcon}
+          />
+        )
+
+      case 'coin-ledger':
+        return (
+          <CoinLedgerScreen
+            profileCoin={profile?.total_coin ?? 0}
+            onBackToProfile={onBackToProfile}
           />
         )
 

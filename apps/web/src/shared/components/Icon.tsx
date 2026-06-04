@@ -16,6 +16,7 @@ type IconName =
   | 'lock'
   | 'hourglass'
   | 'play'
+  | 'refresh'
   | 'eye'
   | 'eye-off'
 
@@ -172,6 +173,15 @@ export function Icon({ name, size = 20, className, style }: IconProps) {
     return (
       <svg {...props}>
         <path d="M8.5 6.7a1 1 0 0 1 1.5-.9l7.2 5a1.3 1.3 0 0 1 0 2.4l-7.2 5a1 1 0 0 1-1.5-.9z" fill="currentColor" />
+      </svg>
+    )
+  }
+
+  if (name === 'refresh') {
+    return (
+      <svg {...props}>
+        <path d="M20 6.5v4.2h-4.2" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M19.2 10.6A7.2 7.2 0 1 1 13 4.8" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     )
   }

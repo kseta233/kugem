@@ -60,6 +60,22 @@ const clearLocalAppStorage = (): void => {
   }
 }
 
+export const resetClientAppState = async (): Promise<void> => {
+  clearLocalAnonymousUserId()
+  clearLocalAppStorage()
+
+  if (typeof window === 'undefined' || typeof window.caches === 'undefined') {
+    return
+  }
+
+  try {
+    const cacheKeys = await window.caches.keys()
+    await Promise.all(cacheKeys.map((key) => window.caches.delete(key)))
+  } catch {
+    // Ignore cache API failures and continue restart flow.
+  }
+}
+
 const getGoogleAuthRedirectTo = (): string => {
   if (typeof window === 'undefined') {
     return 'http://localhost:5173/auth'

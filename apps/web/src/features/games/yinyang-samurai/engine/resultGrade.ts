@@ -12,8 +12,8 @@ export const getResultGrade = (accuracy: number): string => {
   }
 
   if (accuracy >= 80) {
-    return 'Nice Try'
+    return 'Just some noob-rai'
   }
 
-  return 'Try Again'
+  return 'You are a disgrace to the samurai code'
 }
