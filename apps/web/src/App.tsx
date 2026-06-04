@@ -211,7 +211,6 @@ function App() {
 
   // ── Game screen state ─────────────────────────────────────────────────────
   const [saving, setSaving] = useState(false)
-  const [signingOut, setSigningOut] = useState(false)
   const [screen, setScreen] = useState<GameScreen>('catalog')
   const [games, setGames] = useState<Game[]>([])
   const [gamesLoading, setGamesLoading] = useState(false)
@@ -406,15 +405,10 @@ function App() {
   }, [isRegisteredProfile, route.name])
 
   const onSignOut = async () => {
-    try {
-      setSigningOut(true)
-      setScreen('catalog')
-      navigateToRoute({ name: 'home' })
-      setAppPhase('splash')
-      await signOutAndRestart()
-    } finally {
-      setSigningOut(false)
-    }
+    setScreen('catalog')
+    navigateToRoute({ name: 'home' })
+    setAppPhase('splash')
+    await signOutAndRestart()
   }
 
   const onOpenDetail = (game: Game) => {
@@ -822,7 +816,6 @@ function App() {
             profile={profile}
             loading={loading}
             error={error}
-            signingOut={signingOut}
             onBackToHome={onBackToHome}
             onRefresh={refresh}
             onSignOut={onSignOut}

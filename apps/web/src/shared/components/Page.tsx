@@ -5,11 +5,12 @@ type PageProps = PropsWithChildren<{
   eyebrow?: string
   leading?: ReactNode
   trailing?: ReactNode
+  className?: string
 }>
 
-export const Page = ({ title, eyebrow, leading, trailing, children }: PageProps) => {
+export const Page = ({ title, eyebrow, leading, trailing, className = '', children }: PageProps) => {
   return (
-    <main className="page">
+    <main className={`page ${className}`.trim()}>
       <header className="top-appbar">
         <div className="top-appbar__slot">{leading}</div>
         <div className="top-appbar__center">
