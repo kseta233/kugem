@@ -41,6 +41,8 @@ export type RuntimeRoom = {
   roomCode: string;
   gameType: string;
   gameVersion: string;
+  isPrivate: boolean;
+  password?: string;
   status: RuntimeRoomStatus;
   hostUserId: string;
   maxPlayers: number;

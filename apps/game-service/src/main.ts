@@ -1,4 +1,7 @@
 import { loadEnvFiles, readEnv } from "./env.js";
+import { createSupabaseAdminClient } from "./lib/supabase-admin.js";
+import { GameRoomRuleService } from "./modules/rooms/game-room-rule.service.js";
+import { UserIdentityService } from "./modules/rooms/user-identity.service.js";
 import {
   InMemoryRoomStore,
   InMemorySessionStore,
@@ -11,9 +14,15 @@ async function main() {
   const env = readEnv();
   const roomStore = new InMemoryRoomStore();
   const sessionStore = new InMemorySessionStore();
+  const supabaseAdmin = createSupabaseAdminClient(env);
+  const gameRoomRuleService = new GameRoomRuleService(supabaseAdmin);
+  const userIdentityService = new UserIdentityService(supabaseAdmin);
+
   const app = await createServer(env, {
     roomStore,
     sessionStore,
+    gameRoomRuleService,
+    userIdentityService,
   });
 
   const cleanupTimer = startRuntimeCleanupScheduler({

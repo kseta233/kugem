@@ -31,6 +31,13 @@ Implement an MVP runtime-authoritative game service that:
 
 - Runtime expiry settings use source constants, not environment variables. Any TTL or cleanup interval change requires service restart/redeploy.
 
+## Out-Of-Milestone Additions
+
+- Supabase-backed room rules are now read from `public.games.config.roomRules` by gameType.
+- Room create validates maxPlayers against Supabase config.
+- Room APIs validate user existence against Supabase Auth before allowing operations.
+- Room supports private mode with plain password and join-time password check.
+
 ## Milestones
 
 ## M1 - Bootstrap and Guardrails

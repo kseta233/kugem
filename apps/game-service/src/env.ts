@@ -4,7 +4,9 @@ export type AppEnv = {
   port: number;
   nodeEnv: "development" | "test" | "production";
   webOrigin: string;
+  appHandshakeSecret: string;
   supabaseUrl: string;
+  supabaseServiceRoleKey: string;
   supabaseResultFunctionUrl: string;
   gameServiceHmacSecret: string;
   supabaseJwtSecret?: string;
@@ -40,7 +42,9 @@ export function readEnv(): AppEnv {
   }
 
   const webOrigin = readRequired("WEB_ORIGIN");
+  const appHandshakeSecret = readRequired("APP_HANDSHAKE_SECRET");
   const supabaseUrl = readRequired("SUPABASE_URL");
+  const supabaseServiceRoleKey = readRequired("SUPABASE_SERVICE_ROLE_KEY");
   const supabaseResultFunctionUrl = readRequired("SUPABASE_RESULT_FUNCTION_URL");
   const gameServiceHmacSecret = readRequired("GAME_SERVICE_HMAC_SECRET");
   const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
@@ -56,7 +60,9 @@ export function readEnv(): AppEnv {
     port,
     nodeEnv: nodeEnvRaw,
     webOrigin,
+    appHandshakeSecret,
     supabaseUrl,
+    supabaseServiceRoleKey,
     supabaseResultFunctionUrl,
     gameServiceHmacSecret,
     supabaseJwtSecret,

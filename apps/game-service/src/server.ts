@@ -1,7 +1,10 @@
 import cors from "@fastify/cors";
 import Fastify, { type FastifyInstance } from "fastify";
 import type { AppEnv } from "./env.js";
+import { validateAppHandshake } from "./middleware/app-handshake.js";
+import type { GameRoomRuleProvider } from "./modules/rooms/game-room-rule.service.js";
 import { registerRoomRoutes } from "./modules/rooms/routes.js";
+import type { UserIdentityProvider } from "./modules/rooms/user-identity.service.js";
 import type { RuntimeRoomStore } from "./runtime-store/room-store.js";
 import type { RuntimeSessionStore } from "./runtime-store/session-store.js";
 
@@ -24,6 +27,8 @@ function toErrorResponse(code: string, message: string): ApiErrorResponse {
 type ServerDeps = {
   roomStore: RuntimeRoomStore;
   sessionStore: RuntimeSessionStore;
+  gameRoomRuleService: GameRoomRuleProvider;
+  userIdentityService: UserIdentityProvider;
 };
 
 export async function createServer(env: AppEnv, deps: ServerDeps): Promise<FastifyInstance> {
@@ -35,6 +40,17 @@ export async function createServer(env: AppEnv, deps: ServerDeps): Promise<Fasti
 
   await app.register(cors, {
     origin: env.webOrigin,
+  });
+
+  app.addHook("onRequest", async (request, reply) => {
+    if (env.nodeEnv === "test") {
+      return;
+    }
+
+    validateAppHandshake(request, reply, env.appHandshakeSecret, toErrorResponse);
+    if (reply.sent) {
+      return reply;
+    }
   });
 
   app.setNotFoundHandler((_request, reply) => {
@@ -65,6 +81,8 @@ export async function createServer(env: AppEnv, deps: ServerDeps): Promise<Fasti
   await registerRoomRoutes(app, {
     roomStore: deps.roomStore,
     sessionStore: deps.sessionStore,
+    gameRoomRuleService: deps.gameRoomRuleService,
+    userIdentityService: deps.userIdentityService,
     toErrorResponse,
   });
 

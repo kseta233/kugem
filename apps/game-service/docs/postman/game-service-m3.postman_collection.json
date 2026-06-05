@@ -1,0 +1,445 @@
+{
+  "info": {
+    "_postman_id": "d93df5cd-5f12-4ecf-9832-bf90a5346d6f",
+    "name": "Kugem Game Service M3",
+    "description": "Room lifecycle APIs for game-service M3, including Supabase-backed user validation and game rules.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:3001"
+    },
+    {
+      "key": "gameType",
+      "value": "rock-paper-scissors"
+    },
+    {
+      "key": "userA",
+      "value": "user-a"
+    },
+    {
+      "key": "userB",
+      "value": "user-b"
+    },
+    {
+      "key": "roomId",
+      "value": ""
+    },
+    {
+      "key": "roomCode",
+      "value": ""
+    },
+    {
+      "key": "roomPassword",
+      "value": "1234"
+    },
+    {
+      "key": "appSecret",
+      "value": "s9FcwNc7f6b5f7b4a1e8"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Rooms",
+      "item": [
+        {
+          "name": "Create Room (Public)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "if (body && body.room) {",
+                  "  pm.collectionVariables.set('roomId', body.room.roomId);",
+                  "  pm.collectionVariables.set('roomCode', body.room.roomCode);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-user-id",
+                "value": "{{userA}}"
+              },
+              {
+                "key": "x-app-secret",
+                "value": "{{appSecret}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gameType\": \"{{gameType}}\",\n  \"displayName\": \"Player A\",\n  \"maxPlayers\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/rooms",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "rooms"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Room (Private)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "if (body && body.room) {",
+                  "  pm.collectionVariables.set('roomId', body.room.roomId);",
+                  "  pm.collectionVariables.set('roomCode', body.room.roomCode);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-user-id",
+                "value": "{{userA}}"
+              },
+              {
+                "key": "x-app-secret",
+                "value": "{{appSecret}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gameType\": \"{{gameType}}\",\n  \"displayName\": \"Player A\",\n  \"maxPlayers\": 2,\n  \"isPrivate\": true,\n  \"password\": \"{{roomPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/rooms",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "rooms"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Join Room",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-user-id",
+                "value": "{{userB}}"
+              },
+              {
+                "key": "x-app-secret",
+                "value": "{{appSecret}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"displayName\": \"Player B\",\n  \"password\": \"{{roomPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/rooms/{{roomCode}}/join",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "rooms",
+                "{{roomCode}}",
+                "join"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Room",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-app-secret",
+                "value": "{{appSecret}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/rooms/{{roomId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "rooms",
+                "{{roomId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Ready (User A)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-user-id",
+                "value": "{{userA}}"
+              },
+              {
+                "key": "x-app-secret",
+                "value": "{{appSecret}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isReady\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/rooms/{{roomId}}/ready",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "rooms",
+                "{{roomId}}",
+                "ready"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Ready (User B)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-user-id",
+                "value": "{{userB}}"
+              },
+              {
+                "key": "x-app-secret",
+                "value": "{{appSecret}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isReady\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/rooms/{{roomId}}/ready",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "rooms",
+                "{{roomId}}",
+                "ready"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Start Room",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userA}}"
+              },
+              {
+                "key": "x-app-secret",
+                "value": "{{appSecret}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/rooms/{{roomId}}/start",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "rooms",
+                "{{roomId}}",
+                "start"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Negative Cases",
+      "item": [
+        {
+          "name": "Create Room Missing User Header",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gameType\": \"{{gameType}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/rooms",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "rooms"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Room Invalid maxPlayers",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-user-id",
+                "value": "{{userA}}"
+              },
+              {
+                "key": "x-app-secret",
+                "value": "{{appSecret}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gameType\": \"{{gameType}}\",\n  \"maxPlayers\": 4\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/rooms",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "rooms"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Join Room Wrong Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-user-id",
+                "value": "{{userB}}"
+              },
+              {
+                "key": "x-app-secret",
+                "value": "{{appSecret}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"displayName\": \"Player B\",\n  \"password\": \"wrong\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/rooms/{{roomCode}}/join",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "rooms",
+                "{{roomCode}}",
+                "join"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

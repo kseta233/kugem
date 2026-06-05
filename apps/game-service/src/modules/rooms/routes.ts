@@ -4,6 +4,8 @@ import { ACTIVE_SESSION_TTL_MS, WAITING_ROOM_TTL_MS } from "../../runtime-store/
 import type { RuntimeRoomStore } from "../../runtime-store/room-store.js";
 import type { RuntimeSessionStore } from "../../runtime-store/session-store.js";
 import type { RuntimeRoom, RuntimeRoomPlayer, RuntimeSession } from "../../runtime-store/types.js";
+import type { GameRoomRuleProvider } from "./game-room-rule.service.js";
+import type { UserIdentityProvider } from "./user-identity.service.js";
 
 type ApiErrorPayload = {
   error: {
@@ -14,13 +16,15 @@ type ApiErrorPayload = {
 
 type CreateRoomBody = {
   gameType?: string;
-  gameVersion?: string;
   maxPlayers?: number;
   displayName?: string;
+  isPrivate?: boolean;
+  password?: string;
 };
 
 type JoinRoomBody = {
   displayName?: string;
+  password?: string;
 };
 
 type ReadyBody = {
@@ -30,6 +34,8 @@ type ReadyBody = {
 type RoomRouteDeps = {
   roomStore: RuntimeRoomStore;
   sessionStore: RuntimeSessionStore;
+  gameRoomRuleService: GameRoomRuleProvider;
+  userIdentityService: UserIdentityProvider;
   toErrorResponse: (code: string, message: string) => ApiErrorPayload;
 };
 
@@ -68,14 +74,67 @@ function isRoomExpired(room: RuntimeRoom): boolean {
 }
 
 function sanitizeRoom(room: RuntimeRoom): RuntimeRoom {
-  return structuredClone(room);
+  const cloned = structuredClone(room);
+  delete cloned.password;
+  return cloned;
+}
+
+async function getAuthorizedUserId(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  deps: RoomRouteDeps,
+): Promise<string | null> {
+  const userId = getRequestUserId(request, reply, deps.toErrorResponse);
+  if (!userId) {
+    return null;
+  }
+
+  const exists = await deps.userIdentityService.userExists(userId);
+  if (!exists) {
+    void reply.status(401).send(deps.toErrorResponse("UNAUTHORIZED", "User not found in Supabase"));
+    return null;
+  }
+
+  return userId;
 }
 
 export async function registerRoomRoutes(app: FastifyInstance, deps: RoomRouteDeps): Promise<void> {
   app.post<{ Body: CreateRoomBody }>("/v1/rooms", async (request, reply) => {
-    const userId = getRequestUserId(request, reply, deps.toErrorResponse);
+    const userId = await getAuthorizedUserId(request, reply, deps);
     if (!userId) {
       return;
+    }
+
+    const gameType = request.body?.gameType ?? "rock-paper-scissors";
+    const game = await deps.gameRoomRuleService.getActiveGameByType(gameType);
+    if (!game) {
+      return reply
+        .status(400)
+        .send(deps.toErrorResponse("INVALID_ACTION", `Unknown or inactive gameType: ${gameType}`));
+    }
+
+    const roomRules = deps.gameRoomRuleService.extractRoomRules(game.config);
+    const maxPlayers = request.body?.maxPlayers ?? roomRules.maxPlayers[0] ?? 2;
+    if (!roomRules.maxPlayers.includes(maxPlayers)) {
+      return reply.status(400).send(
+        deps.toErrorResponse(
+          "INVALID_ACTION",
+          `maxPlayers=${maxPlayers} is not allowed for gameType=${gameType}`,
+        ),
+      );
+    }
+
+    const isPrivate = request.body?.isPrivate === true;
+    if (isPrivate && roomRules.privateRoomEnabled !== true) {
+      return reply
+        .status(400)
+        .send(deps.toErrorResponse("INVALID_ACTION", "Private room is not enabled for this game"));
+    }
+
+    if (isPrivate && (!request.body?.password || request.body.password.length === 0)) {
+      return reply
+        .status(400)
+        .send(deps.toErrorResponse("INVALID_ACTION", "Password is required for private room"));
     }
 
     const createdAt = nowIso();
@@ -92,22 +151,18 @@ export async function registerRoomRoutes(app: FastifyInstance, deps: RoomRouteDe
     const room: RuntimeRoom = {
       roomId,
       roomCode,
-      gameType: request.body?.gameType ?? "rock-paper-scissors",
-      gameVersion: request.body?.gameVersion ?? "1.0",
+      gameType,
+      gameVersion: String(game.version),
+      isPrivate,
+      password: isPrivate ? request.body?.password : undefined,
       status: "waiting",
       hostUserId: userId,
-      maxPlayers: request.body?.maxPlayers ?? 2,
+      maxPlayers,
       players: [player],
       createdAt,
       updatedAt: createdAt,
       expiresAt: addMs(createdAt, WAITING_ROOM_TTL_MS),
     };
-
-    if (room.maxPlayers !== 2) {
-      return reply
-        .status(400)
-        .send(deps.toErrorResponse("INVALID_ACTION", "Only maxPlayers=2 is supported in MVP"));
-    }
 
     await deps.roomStore.createRoom(room);
     return reply.status(201).send({ room: sanitizeRoom(room) });
@@ -116,7 +171,7 @@ export async function registerRoomRoutes(app: FastifyInstance, deps: RoomRouteDe
   app.post<{ Params: { roomCode: string }; Body: JoinRoomBody }>(
     "/v1/rooms/:roomCode/join",
     async (request, reply) => {
-      const userId = getRequestUserId(request, reply, deps.toErrorResponse);
+      const userId = await getAuthorizedUserId(request, reply, deps);
       if (!userId) {
         return;
       }
@@ -139,6 +194,12 @@ export async function registerRoomRoutes(app: FastifyInstance, deps: RoomRouteDe
         return reply
           .status(409)
           .send(deps.toErrorResponse("INVALID_ACTION", "Room already started"));
+      }
+
+      if (room.isPrivate && room.password !== request.body?.password) {
+        return reply
+          .status(403)
+          .send(deps.toErrorResponse("INVALID_ACTION", "Room password does not match"));
       }
 
       const existing = room.players.find((player) => player.userId === userId);
@@ -186,7 +247,7 @@ export async function registerRoomRoutes(app: FastifyInstance, deps: RoomRouteDe
   app.post<{ Params: { roomId: string }; Body: ReadyBody }>(
     "/v1/rooms/:roomId/ready",
     async (request, reply) => {
-      const userId = getRequestUserId(request, reply, deps.toErrorResponse);
+      const userId = await getAuthorizedUserId(request, reply, deps);
       if (!userId) {
         return;
       }
@@ -225,7 +286,7 @@ export async function registerRoomRoutes(app: FastifyInstance, deps: RoomRouteDe
   );
 
   app.post<{ Params: { roomId: string } }>("/v1/rooms/:roomId/start", async (request, reply) => {
-    const userId = getRequestUserId(request, reply, deps.toErrorResponse);
+    const userId = await getAuthorizedUserId(request, reply, deps);
     if (!userId) {
       return;
     }
