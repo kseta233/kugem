@@ -21,11 +21,15 @@ Implement an MVP runtime-authoritative game service that:
 
 - [x] M1 - Bootstrap and Guardrails
 - [x] M2 - Runtime Models and Store
-- [ ] M3 - Room Lifecycle API
+- [ ] M3 - Room Lifecycle API (in progress)
 - [ ] M4 - RockPaperScissor Engine
 - [ ] M5 - Session Gameplay API
 - [ ] M6 - Result Publisher Contract
 - [ ] M7 - Hardening and Docs
+
+## Tech Debt Notes (Do Not Address Now)
+
+- Runtime expiry settings use source constants, not environment variables. Any TTL or cleanup interval change requires service restart/redeploy.
 
 ## Milestones
 

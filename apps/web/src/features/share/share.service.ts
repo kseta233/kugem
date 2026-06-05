@@ -43,7 +43,10 @@ export const createSharePost = async (
   input: CreateSharePostInput,
 ): Promise<CreateSharePostResult> => {
   const { data, error } = await supabase.functions.invoke('create_share_post', {
-    body: input,
+    body: {
+      ...input,
+      appBaseUrl: typeof window !== 'undefined' ? window.location.origin : undefined,
+    },
   })
 
   if (error) {

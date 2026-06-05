@@ -9,10 +9,13 @@ import { createServer } from "./server.js";
 async function main() {
   loadEnvFiles();
   const env = readEnv();
-  const app = await createServer(env);
-
   const roomStore = new InMemoryRoomStore();
   const sessionStore = new InMemorySessionStore();
+  const app = await createServer(env, {
+    roomStore,
+    sessionStore,
+  });
+
   const cleanupTimer = startRuntimeCleanupScheduler({
     roomStore,
     sessionStore,

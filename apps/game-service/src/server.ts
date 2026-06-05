@@ -1,6 +1,9 @@
 import cors from "@fastify/cors";
 import Fastify, { type FastifyInstance } from "fastify";
 import type { AppEnv } from "./env.js";
+import { registerRoomRoutes } from "./modules/rooms/routes.js";
+import type { RuntimeRoomStore } from "./runtime-store/room-store.js";
+import type { RuntimeSessionStore } from "./runtime-store/session-store.js";
 
 type ApiErrorResponse = {
   error: {
@@ -18,7 +21,12 @@ function toErrorResponse(code: string, message: string): ApiErrorResponse {
   };
 }
 
-export async function createServer(env: AppEnv): Promise<FastifyInstance> {
+type ServerDeps = {
+  roomStore: RuntimeRoomStore;
+  sessionStore: RuntimeSessionStore;
+};
+
+export async function createServer(env: AppEnv, deps: ServerDeps): Promise<FastifyInstance> {
   const app = Fastify({
     logger: {
       level: env.nodeEnv === "production" ? "info" : "debug",
@@ -54,10 +62,10 @@ export async function createServer(env: AppEnv): Promise<FastifyInstance> {
     };
   });
 
-  app.get("/v1/rooms/:roomId", async (_request, reply) => {
-    return reply
-      .status(501)
-      .send(toErrorResponse("NOT_IMPLEMENTED", "Room API scaffolded but not implemented yet."));
+  await registerRoomRoutes(app, {
+    roomStore: deps.roomStore,
+    sessionStore: deps.sessionStore,
+    toErrorResponse,
   });
 
   app.get("/v1/sessions/:sessionId/state", async (_request, reply) => {

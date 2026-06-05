@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     return errorJson(401, 'UNAUTHORIZED')
   }
 
-  let payload: { scoreId?: string; caption?: string; mediaUrl?: string }
+  let payload: { scoreId?: string; caption?: string; mediaUrl?: string; appBaseUrl?: string }
   try {
     payload = await req.json()
   } catch {
@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
     return errorJson(403, 'REGISTRATION_REQUIRED')
   }
 
-  const appBaseUrl = Deno.env.get('APP_BASE_URL') ?? 'http://localhost:5173'
+  const appBaseUrl = (Deno.env.get('APP_BASE_URL') ?? payload.appBaseUrl ?? 'http://localhost:5173').replace(/\/$/, '')
 
   for (let i = 0; i < 8; i += 1) {
     const shareSlug = createShareSlug()
@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
       return json(200, {
         postId: post.id,
         shareSlug: post.share_slug,
-        shareUrl: `${appBaseUrl.replace(/\/$/, '')}/share/${post.share_slug}`,
+        shareUrl: `${appBaseUrl}/share/${post.share_slug}`,
       })
     }
 
