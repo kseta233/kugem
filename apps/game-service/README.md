@@ -164,12 +164,28 @@ npm install
 npm run dev --workspace game-service
 ```
 
-If your workspace package name differs, use that package name in --workspace.
-
 Health check:
 
 ```bash
 curl http://localhost:3001/health
+```
+
+Run tests:
+
+```bash
+npm run test --workspace game-service
+```
+
+Type check:
+
+```bash
+npm run typecheck --workspace game-service
+```
+
+Build:
+
+```bash
+npm run build --workspace game-service
 ```
 
 ## Railway Deployment Setup
@@ -221,6 +237,53 @@ Do not expose service secrets in client bundles.
 2. Wait for build and startup completion.
 3. Verify logs show service listening on assigned port.
 4. Verify /health endpoint returns 200.
+
+## Railway Deployment Verification Checklist
+
+After deploying to Railway, verify the following:
+
+### 1. Health Check
+
+```bash
+curl https://<your-railway-domain>/health
+```
+
+Expected: `{ "status": "ok", "service": "game-service" }`
+
+### 2. Environment Variables Set
+
+- [ ] `PORT` — optional (Railway provides automatically)
+- [ ] `NODE_ENV=production`
+- [ ] `WEB_ORIGIN` — frontend origin for CORS
+- [ ] `APP_HANDSHAKE_SECRET` — shared secret with frontend
+- [ ] `SUPABASE_URL`
+- [ ] `SUPABASE_SERVICE_ROLE_KEY`
+- [ ] `SUPABASE_JWT_SECRET` or `SUPABASE_JWKS_URL`
+- [ ] `SUPABASE_RESULT_FUNCTION_URL` — Edge Function URL
+- [ ] `GAME_SERVICE_HMAC_SECRET` — must match Edge Function secret
+
+### 3. Supabase Integration
+
+- [ ] `supabase/migrations/202606100001_match_results.sql` applied
+- [ ] `submit_game_result` Edge Function deployed
+- [ ] `GAME_SERVICE_HMAC_SECRET` set in Edge Function secrets (same value)
+
+### 4. Smoke Test
+
+1. Create room: `POST /v1/rooms` with `x-app-secret` and `x-user-id` headers
+2. Join room with second user
+3. Both ready, start session
+4. Play until one player wins 2 rounds
+5. Confirm `match_results` row exists in Supabase
+
+### 5. Known Failure Modes
+
+| Scenario | Behavior |
+|---|---|
+| Service restart during active match | Room/session lost. Returns ROOM_NOT_FOUND / SESSION_NOT_FOUND. |
+| Supabase unreachable on submit | Returns RESULT_SUBMISSION_FAILED (502). Match result is lost. |
+| Session expires (30 min) | Returns SESSION_EXPIRED (410). |
+| Room expires (15 min) | Returns ROOM_EXPIRED (410), then ROOM_NOT_FOUND. |
 
 ## Supabase Integration Checklist
 

@@ -2,6 +2,7 @@ import { loadEnvFiles, readEnv } from "./env.js";
 import { createSupabaseAdminClient } from "./lib/supabase-admin.js";
 import { GameRoomRuleService } from "./modules/rooms/game-room-rule.service.js";
 import { UserIdentityService } from "./modules/rooms/user-identity.service.js";
+import { createResultPublisher } from "./modules/result-publisher/index.js";
 import {
   InMemoryRoomStore,
   InMemorySessionStore,
@@ -17,12 +18,17 @@ async function main() {
   const supabaseAdmin = createSupabaseAdminClient(env);
   const gameRoomRuleService = new GameRoomRuleService(supabaseAdmin);
   const userIdentityService = new UserIdentityService(supabaseAdmin);
+  const resultPublisher = createResultPublisher({
+    supabaseResultFunctionUrl: env.supabaseResultFunctionUrl,
+    gameServiceHmacSecret: env.gameServiceHmacSecret,
+  });
 
   const app = await createServer(env, {
     roomStore,
     sessionStore,
     gameRoomRuleService,
     userIdentityService,
+    resultPublisher,
   });
 
   const cleanupTimer = startRuntimeCleanupScheduler({

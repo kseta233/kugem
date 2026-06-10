@@ -99,7 +99,20 @@ async function getAuthorizedUserId(
 }
 
 export async function registerRoomRoutes(app: FastifyInstance, deps: RoomRouteDeps): Promise<void> {
-  app.post<{ Body: CreateRoomBody }>("/v1/rooms", async (request, reply) => {
+  app.post<{ Body: CreateRoomBody }>("/v1/rooms", {
+    schema: {
+      body: {
+        type: ["object", "null"],
+        properties: {
+          gameType: { type: "string", minLength: 1, maxLength: 100 },
+          displayName: { type: "string", minLength: 1, maxLength: 50 },
+          maxPlayers: { type: "integer", minimum: 2, maximum: 10 },
+          isPrivate: { type: ["boolean", "null"] },
+          password: { type: "string", minLength: 1, maxLength: 100 },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const userId = await getAuthorizedUserId(request, reply, deps);
     if (!userId) {
       return;
@@ -170,6 +183,17 @@ export async function registerRoomRoutes(app: FastifyInstance, deps: RoomRouteDe
 
   app.post<{ Params: { roomCode: string }; Body: JoinRoomBody }>(
     "/v1/rooms/:roomCode/join",
+    {
+      schema: {
+        body: {
+          type: ["object", "null"],
+          properties: {
+            displayName: { type: "string", minLength: 1, maxLength: 50 },
+            password: { type: "string", minLength: 1, maxLength: 100 },
+          },
+        },
+      },
+    },
     async (request, reply) => {
       const userId = await getAuthorizedUserId(request, reply, deps);
       if (!userId) {
@@ -246,6 +270,16 @@ export async function registerRoomRoutes(app: FastifyInstance, deps: RoomRouteDe
 
   app.post<{ Params: { roomId: string }; Body: ReadyBody }>(
     "/v1/rooms/:roomId/ready",
+    {
+      schema: {
+        body: {
+          type: ["object", "null"],
+          properties: {
+            isReady: { type: "boolean" },
+          },
+        },
+      },
+    },
     async (request, reply) => {
       const userId = await getAuthorizedUserId(request, reply, deps);
       if (!userId) {

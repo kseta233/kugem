@@ -12,7 +12,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/main.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "tsx --test src/**/*.test.ts"
+    "test": "tsx --test src/integration/*.test.ts src/modules/*/*.test.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.1.0",

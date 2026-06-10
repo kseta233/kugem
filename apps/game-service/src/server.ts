@@ -4,7 +4,9 @@ import type { AppEnv } from "./env.js";
 import { validateAppHandshake } from "./middleware/app-handshake.js";
 import type { GameRoomRuleProvider } from "./modules/rooms/game-room-rule.service.js";
 import { registerRoomRoutes } from "./modules/rooms/routes.js";
+import { registerSessionRoutes } from "./modules/sessions/routes.js";
 import type { UserIdentityProvider } from "./modules/rooms/user-identity.service.js";
+import type { ResultPublisher } from "./modules/result-publisher/index.js";
 import type { RuntimeRoomStore } from "./runtime-store/room-store.js";
 import type { RuntimeSessionStore } from "./runtime-store/session-store.js";
 
@@ -29,6 +31,7 @@ type ServerDeps = {
   sessionStore: RuntimeSessionStore;
   gameRoomRuleService: GameRoomRuleProvider;
   userIdentityService: UserIdentityProvider;
+  resultPublisher: ResultPublisher;
 };
 
 export async function createServer(env: AppEnv, deps: ServerDeps): Promise<FastifyInstance> {
@@ -58,12 +61,18 @@ export async function createServer(env: AppEnv, deps: ServerDeps): Promise<Fasti
   });
 
   app.setErrorHandler((error, _request, reply) => {
-    app.log.error(error);
-
     if (reply.sent) {
       return;
     }
 
+    // Fastify validation errors (JSON schema)
+    if (error.validation) {
+      const first = error.validation[0];
+      const detail = first ? `${first.instancePath || "body"} ${first.message}` : error.message;
+      return reply.status(400).send(toErrorResponse("INVALID_PAYLOAD", detail));
+    }
+
+    app.log.error(error);
     return reply
       .status(500)
       .send(toErrorResponse("INTERNAL_SERVER_ERROR", "Unexpected server error"));
@@ -86,12 +95,10 @@ export async function createServer(env: AppEnv, deps: ServerDeps): Promise<Fasti
     toErrorResponse,
   });
 
-  app.get("/v1/sessions/:sessionId/state", async (_request, reply) => {
-    return reply
-      .status(501)
-      .send(
-        toErrorResponse("NOT_IMPLEMENTED", "Session API scaffolded but not implemented yet."),
-      );
+  await registerSessionRoutes(app, {
+    sessionStore: deps.sessionStore,
+    resultPublisher: deps.resultPublisher,
+    toErrorResponse,
   });
 
   return app;

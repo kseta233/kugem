@@ -14,7 +14,8 @@
     "preview": "npm run preview --workspace minigame-web",
     "start:game-service": "npm run start --workspace game-service",
     "test:e2e": "npx @playwright/test test",
-    "test:e2e:ui": "npx @playwright/test test --ui"
+    "test:e2e:ui": "npx @playwright/test test --ui",
+    "test:e2e:prod:game-service": "npx @playwright/test test e2e/api/game-service-production.spec.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
